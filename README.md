@@ -1658,3 +1658,757 @@ WHERE @SalespersonID = USER_NAME();
 - ![alt text](image-429.png)
 
 ## Monitor Activity and Performance
+- Metrics are numerical values that are collected at regular intervals, and have a timestamp for when, name, value and other labels.
+- They're stored in a time series database, which is suitable for alerting, and fast detection of issues.
+- It's lightweight, and allows for near realtime alerting.
+- ![alt text](image-430.png)
+- ![alt text](image-431.png)
+- ![alt text](image-432.png)
+- We can go upto 93 days in the past
+- ![alt text](image-433.png)
+- ![alt text](image-434.png)
+- We can download the metrics as an Excel also
+
+### Prepare an operational performance baseline
+- We can create an operational performance baseline by using logs
+- We can get operational performance baseline using Metrics Explorer or resources stats as T-SQL queries
+- We can also see our historic storage
+- Logs are events in the system which may contain non-numerical data and may be structured or freeform, and they may have a timestamp.
+- We can monitor the data loading in the last hour.
+- ![alt text](image-435.png)
+- Compute Resources like CPU also affect performance.
+- ![alt text](image-436.png)
+- We may also need to optimize our queries
+- ![alt text](image-438.png)
+- ![alt text](image-439.png)
+- ![alt text](image-440.png)
+- ![alt text](image-441.png)
+- ![alt text](image-442.png)
+- ![alt text](image-443.png)
+
+### Creating Event Notifications for Azure Resources
+- ![alt text](image-444.png)
+- ![alt text](image-445.png)
+- ![alt text](image-446.png)
+- ![alt text](image-447.png)
+- ![alt text](image-448.png)
+- ![alt text](image-449.png)
+- ![alt text](image-450.png)
+- ![alt text](image-451.png)
+- ![alt text](image-452.png)
+- ![alt text](image-453.png)
+- ![alt text](image-454.png)
+- ![alt text](image-455.png)
+- ![alt text](image-456.png)
+- ![alt text](image-457.png)
+- When we create an Alert Rule, we do three things
+- We specify the scope(target resource to monitor)
+- We provide the Condition(We specify the signal and define its logic, say CPU Usage > 50%)
+- We provide the Actions(Like Emailing, Text Message, Triggering an Azure Function or Runbook)
+
+### Determine Sources for Performance Metrics
+- ![alt text](image-458.png)
+- Most Azure Resource submit platform metrics to the metrics database
+- We have Azure Diagnostic Extension for Azure VM that submits logs and metrics
+- We also have Log Analytic Agents that can installed on Windows or Linux Virtual Machines.
+- ![alt text](image-459.png)
+- There is also VM Insights which also provides additional Azure Monitor Functionality
+- We can also enable Application Insights to collect metrics and logs relating to performance. 
+- We can have monitoring solutions and insights
+- Container Insights provide data about AKS. 
+- In Windows we have PerfMon also and there are specific metrics for SQL Server
+- ![alt text](image-460.png) 
+- For Azure Managed Instance, we have these metrics
+- ![alt text](image-461.png)
+- For Azure SQL we have the following metrics
+- ![alt text](image-462.png)
+
+### Interpret Performance Metrics
+- We may want to upgrade or downgrade resources based on metrics
+- ![alt text](image-463.png)
+- ![alt text](image-464.png)
+- If CPU percentage is high, query latency increases or queries may timeout.
+- We have got Data I/O percentage or Log I/O percentage
+- We also have **in-memory OLTP storage % **which is xtp_storage_percent. 
+- ![alt text](image-465.png)
+- If this metric hits 100% then memory optimized tables, indexes and table variables may not work properly.
+- This may cause Insert, Update, Alter and Create Operations to fail
+- Select and Delete will be fine. 
+- We also have Data Space Use Percentage, If this is getting high, consider upgrading to the next service tier. We also may need to shrink the database or scale out using sharding. 
+- ![alt text](image-466.png)
+- If it is Elastic pool, consider moving out of the pool
+- We also have Avg Memory Usage Percent: This is used for caching
+- ![alt text](image-467.png)
+- If we get out of memory errors, we may need to increase the service tier or compute size or optimize the queries
+- We also have session's percentage and worker's percentage
+- ![alt text](image-468.png)
+- This is the maximum concurrent sessions divided by the service tier limit. 
+- Max worker percent is the maximum concurrent requests divided by the surface tier limit.
+- If you get towards a hundred, then you might want to increase service tier compute
+size or optimise queries.
+- How do we decide which queries need to be optimized
+- Go to Query Performance Insight section
+- ![alt text](image-469.png)
+- ![alt text](image-470.png)
+- ![alt text](image-471.png)
+- ![alt text](image-472.png)
+- ![alt text](image-473.png)
+- ![alt text](image-474.png)
+
+### Monitor by using Intelligent Insights
+- It compares the current database workload, for the last hour, within the last seven days.
+- It uses data from the query store
+- Intelligent Insights in Azure SQL Database and Azure SQL Managed Instance is a feature that uses built-in artificial intelligence to continuously monitor database usage and detect performance-disrupting events. It analyzes workload by comparing the last hour to a seven-day baseline, generating a diagnostics log called SQLInsights
+- This log provides root cause analysis of performance issues and, where possible, recommendations for improvements.
+- It supports streaming to Azure SQL Analytics, Event Hubs, or Storage for visualization and custom alerting.
+- It detects issues with high wait times, critical exceptions, and query prioritizations.
+- It’s unavailable in West Europe, North Europe, West US 1, and East US 1
+- Not available for VMs
+- ![alt text](image-475.png)
+- ![alt text](image-476.png)
+- Intelligent insights looks for things that could affect the database performance,
+such as: resourcing limits. So if you reach your resources limits, like CPU reaching results limits for Managed Instances, or DTUs work threads or login sessions, reaching results limits for as your SQL database, then you might have a performance recommendation based on that.
+ - ![alt text](image-477.png) 
+ - Whether we need to increase number of parallel workers or indexes
+ - Do we need to upgrade or downgrade our pricing tier.
+
+### Configure and Monitor Activity and Performance
+- ![alt text](image-478.png)
+- ![alt text](image-479.png)
+- ![alt text](image-480.png)
+
+### SQL Insights
+- SQLInsights is a diagnostics log generated by the Intelligent Insights feature in Azure SQL Database and Azure SQL Managed Instance.
+- It uses AI to monitor database performance, analyzing the last hour of workload against a seven-day baseline.
+- The log identifies performance-disrupting events, provides root cause analysis, and offers recommendations for optimization when feasible. It can be streamed to Azure SQL Analytics, Event Hubs, or Azure Storage for visualization, custom alerting, or integration with other tools.
+- Intelligent Insights is the overarching capability that uses AI to monitor performance and produce the SQLInsights log, which contains root cause analysis and recommendations for performance issues.
+- We usually use DMVs to monitor, diagnose problems and tune performance
+- But what if we have lot of databases and instances
+- SQL Insights allows us to use a dedicated virtual machine to collect all information from SQL resources.
+- We can have more than one collection agent also
+- ![alt text](image-481.png)
+- No additional cost for SQL Insights
+- It support SQL Server 2012 or later
+- It wont support Elastic Pools
+- Not good for serverless tier
+#### Setting it up
+- Create a Log Analytics Workspace
+- Create a VM
+- ![alt text](image-482.png)
+- Create a SQL Server
+- ![alt text](image-484.png)
+- Use the Database in SSMS by setting server firewall
+- ![alt text](image-485.png)
+- For a SQL Server Managed Instance we need to do the following
+- ![alt text](image-486.png)
+- Allow the SQL Database access from the VM either from the same VNet, or different VNet through Vnet peering or Vnet VPN Gateway or Azure Express Route
+- For now, we follow the simple processo of allowing it through the firewall
+- ![alt text](image-487.png)
+- Go to Azure Monitor
+- ![alt text](image-488.png)
+- ![alt text](image-489.png)
+- ![alt text](image-490.png)
+- ![alt text](image-491.png)
+- ![alt text](image-492.png)
+- ![alt text](image-493.png)
+- Specify the connection strings to the database
+- ![alt text](image-494.png)
+- ![alt text](image-495.png)
+- ![alt text](image-496.png)
+- ![alt text](image-497.png)
+- ![alt text](image-498.png)
+- ![alt text](image-499.png)
+
+### Database Watchers
+- It's a centralized store for performance, configuration and health data for Azure SQL database and Azure SQL Managed instance.
+- It gets data from these databases and the data is stored in either an Azure Data Explorer cluster.
+- That's a highly scalable data service for fast input and analytics or real time analytics within Microsoft Fabric.
+- Creating the watchers and dashboards are free.
+- Database Watchers in Azure SQL Database is a preview feature for monitoring and troubleshooting database performance and availability. It allows you to collect, store, and analyze telemetry data from one or multiple Azure SQL databases using a centralized watcher resource in a specified Azure region.
+- You can configure it to monitor metrics like CPU usage, storage, query performance, and availability, with data stored in a target database for up to 30 days (hot storage) or longer in a linked storage account (cold storage).
+- It supports visualization through Azure workbooks, custom SQL queries, or integration with Grafana via an Azure Data Explorer cluster.
+- Alerts can be set for specific conditions, and it’s manageable via the Azure portal, CLI, PowerShell, or ARM templates.
+- ![alt text](image-500.png)
+- ![alt text](image-501.png)
+- ![alt text](image-502.png)
+- ![alt text](image-503.png)
+- ![alt text](image-504.png)
+- ![alt text](image-505.png)
+- ![alt text](image-506.png)
+- We have to grant access to Database Watcher
+- ![alt text](image-507.png)
+- ![alt text](image-508.png)
+- ![alt text](image-509.png)
+- ![alt text](image-510.png)
+- This can find the top running queries and can also give index recommendations
+- ![alt text](image-511.png)
+- ![alt text](image-512.png)
+- ![alt text](image-513.png)
+- We can use KQL or Power BI to analyze data
+
+## Implement Performance Related Maintenance Tasks
+### Implement Index Maintenance Related Tasks
+- We will look at index maintenance tasks and assess the growth and fragmentation of a particular index.
+- To implement index maintenance tasks for Azure SQL Database, follow these steps for optimal performance and minimal disruption. These tasks focus on rebuilding, reorganizing, and updating statistics for indexes.
+- Assess Index Fragmentation: 
+- Use the sys.dm_db_index_physical_stats DMV to check fragmentation levels.
+- Knowing fragmentation is important because it can degrade query performance as there is more I/O requests with smaller number of data in each request and each page can be fragmented upto 100%
+```sql
+SELECT 
+    d.name AS DatabaseName,
+    t.name AS TableName,
+    i.name AS IndexName,
+    ips.index_type_desc,
+    ips.avg_fragmentation_in_percent,
+    ips.page_count
+FROM sys.dm_db_index_physical_stats(DB_ID(), NULL, NULL, NULL, 'LIMITED') AS ips
+JOIN sys.databases d ON d.database_id = ips.database_id
+JOIN sys.tables t ON t.object_id = ips.object_id
+JOIN sys.indexes i ON i.object_id = ips.object_id AND i.index_id = ips.index_id
+WHERE ips.avg_fragmentation_in_percent > 10
+ORDER BY ips.avg_fragmentation_in_percent DESC;
+
+```
+- Focus on indexes with avg_fragmentation_in_percent > 10% and page_count > 1000.
+- Choose Maintenance Strategy:
+- Reorganize: For fragmentation between 10-30%. Less resource-intensive, online operation.
+```sql
+ALTER INDEX [IndexName] ON [Schema].[TableName] REORGANIZE;
+```
+- Rebuild: For fragmentation > 30%. More resource-intensive but fully optimizes the index
+```sql
+ALTER INDEX [IndexName] ON [Schema].[TableName] REBUILD WITH (ONLINE = ON);
+
+```
+- Use ONLINE = ON for minimal locking in Azure SQL Database (supported in Standard and Premium tiers).
+- Update Statistics: Ensure query optimizer has accurate data distribution
+```sql
+UPDATE STATISTICS [Schema].[TableName] [IndexName];
+```
+- Automate Maintenance
+- Azure Automation
+- Create a runbook using PowerShell or Python to execute maintenance scripts.
+- Use the above queries to dynamically identify fragmented indexes and apply reorganize or rebuild.
+- Schedule the runbook via Azure Scheduler for off-peak hours.
+- SQL Agent Jobs (Azure SQL Managed Instance)
+- Create a SQL Server Agent job with T-SQL scripts to check fragmentation and perform maintenance.
+- Schedule jobs to run during low-traffic periods.
+- Elastic Jobs (Azure SQL Database)
+- Use Azure Elastic Jobs to run maintenance scripts across multiple databases.
+- Configure with a job agent and schedule via T-SQL or Azure portal
+- Monitor and Optimize
+- Use Database Watchers (preview) to monitor index performance metrics like query wait times and CPU usage.
+- Stream Intelligent Insights (SQLInsights log) to Azure SQL Analytics to detect index-related performance issues.
+- Adjust thresholds (e.g., fragmentation levels) based on workload patterns.
+- Avoid rebuilding indexes unnecessarily; prioritize reorganizing for smaller indexes
+- Regularly update statistics, especially after heavy data modifications
+- ![alt text](image-514.png)
+- ![alt text](image-515.png)
+- ![alt text](image-516.png)
+- ![alt text](image-517.png)
+- DBCC Config has been deprecated
+- ![alt text](image-518.png)
+- For columnstore reorganized with fragmentation more than 20%
+- FillFactor tell us a percentage of how much each page is going to be filled up
+- Fill Factor allows some expansion and allows us to build a bigger index.
+- MAX_DURATION specifies how long we can do the rebuilding the indexes for. If it is specified for 30 minutes, it will run for 30 minutes and then PAUSE.
+- We can even specify RESUMABLE to ON
+
+### Implement Statistics Maintenance Tasks
+- They're used to create query plans to improve the speed of queries.
+- The statistics contain information about the distribution of values and tables or indexed views columns.
+- Say for example, if a particular value is 1, it could tell us this value is in 1000 rows and if the value is 2 then this value is in 100 rows and so on
+- It enables the query optimizer to create better plans
+- Like where it should use INDEX SEEK or INDEX SCAN
+- Query Optimizer determines when statistics might be out of date and it updates them. However we can do this part manually also
+- To implement statistics maintenance tasks for Azure SQL Database, follow these steps to ensure the query optimizer uses accurate data distributions for efficient query execution.
+- Identify Outdated Statistics
+- Use sys.dm_db_stats_properties to check when statistics were last updated
+```sql
+SELECT 
+    t.name AS TableName,
+    s.name AS StatsName,
+    STATS_DATE(s.object_id, s.stats_id) AS LastUpdated,
+    sp.modification_counter,
+    sp.row_count
+FROM sys.stats s
+JOIN sys.tables t ON t.object_id = s.object_id
+CROSS APPLY sys.dm_db_stats_properties(t.object_id, s.stats_id) sp
+WHERE sp.modification_counter > 1000 OR STATS_DATE(s.object_id, s.stats_id) < DATEADD(DAY, -7, GETDATE())
+ORDER BY sp.modification_counter DESC;
+
+```
+- Focus on statistics with high modification_counter (>1000) or not updated in the last 7 days.
+- Manual Update: Update specific statistics for a table or index.
+```sql
+UPDATE STATISTICS [Schema].[TableName] [StatsName];
+```
+- Full Scan: For more accurate statistics, use a full scan (resource-intensive)
+```sql
+UPDATE STATISTICS [Schema].[TableName] [StatsName] WITH FULLSCAN;
+```
+- Automate Maintenance either with Azure Automation, SQL Agent Jobs or Elastic Jobs
+- ![alt text](image-519.png)
+- ![alt text](image-520.png)
+
+### Configure Database auto-tuning and Automate Performance Tuning
+- Auto tuning is a process which learns about your workload and identifies potential issues and improvement using the philosophy: learn, adapt, verify, and repeat.
+- Configure Database Auto-Tuning
+- Azure SQL Database provides auto-tuning options to automatically optimize performance by applying index and query execution plan adjustments.
+- Access Auto-Tuning Settings
+- In the Azure Portal, navigate to your Azure SQL Database.
+- Under Settings, select Automatic tuning.
+- Alternatively, use T-SQL or PowerShell for configuration.
+- Enable Auto-Tuning Options: Azure SQL supports three auto-tuning settings
+- ![alt text](image-521.png)
+- ![alt text](image-522.png)
+- Azure Managed Instance only support FORCE_PLAN
+- Create Index: Automatically creates indexes to improve query performance
+```sql
+ALTER DATABASE [YourDatabaseName] SET AUTOMATIC_TUNING (CREATE_INDEX = ON);
+```
+- Drop Index: Automatically drops unused or duplicate indexes
+```sql
+ALTER DATABASE [YourDatabaseName] SET AUTOMATIC_TUNING (DROP_INDEX = ON);
+```
+- Force Last Good Plan: Automatically enforces the last known good query execution plan to prevent performance regressions.
+```sql
+ALTER DATABASE [YourDatabaseName] SET AUTOMATIC_TUNING (FORCE_LAST_GOOD_PLAN = ON);
+```
+- Azure Portal Configuration:
+- In the Automatic tuning blade, toggle each option to On or Inherit (to use server-level settings).
+- Save changes.
+- Server-Level Inheritance:
+- Configure auto-tuning at the Azure SQL Server level to apply to all databases.
+- In the Azure Portal, go to the SQL Server resource, then Automatic tuning, and set desired options.
+- Databases set to Inherit will adopt these settings.
+- Verify Settings
+```sql
+SELECT * FROM sys.database_automatic_tuning_options;
+```
+- Beyond auto-tuning, automate performance monitoring and maintenance tasks to complement Azure’s built-in features like Intelligent Insights or Database Watchers
+- We can use Azure Automation or Elastic Jobs to schedule Index and Statistics Maintenance.
+- Enable Query Performance Insights in the Azure Portal under your database’s Monitoring section.
+- ![alt text](image-523.png)
+
+
+### Manage Storage Capacity
+- Applies to Azure SQL Database and not to SQL Managed Instance.
+- More space means more cost
+- Data space allocated can grow automatically.
+- If we delete a billion rows, the Data space allocated may not decrease accordingly. 
+- We have the following options to manage storage capacity
+```sql
+-- Remove Unused data
+DELETE FROM [Schema].[TableName] WHERE CreatedDate < DATEADD(YEAR, -1, GETDATE());
+
+-- Purge Unneeded Indexes
+-- Use sys.dm_db_index_usage_stats to find unused indexes:
+SELECT 
+    t.name AS TableName,
+    i.name AS IndexName
+FROM sys.indexes i
+JOIN sys.tables t ON i.object_id = t.object_id
+LEFT JOIN sys.dm_db_index_usage_stats s ON i.object_id = s.object_id AND i.index_id = s.index_id
+WHERE s.user_seeks = 0 AND s.user_scans = 0 AND s.user_lookups = 0
+ORDER BY t.name;
+
+-- DROP unused indexes
+DROP INDEX [IndexName] ON [Schema].[TableName];
+
+-- Compress Data
+-- Enable row or page compression on large tables
+ALTER TABLE [Schema].[TableName] REBUILD WITH (DATA_COMPRESSION = PAGE);
+
+-- Verify Compression Savings
+EXEC sp_estimate_data_compression_savings 
+    @schema_name = 'Schema', 
+    @object_name = 'TableName', 
+    @index_id = NULL, 
+    @partition_number = NULL, 
+    @data_compression = 'PAGE';
+
+-- Truncate Large Tables
+TRUNCATE TABLE [Schema].[TableName];
+
+
+-- Cleanup Logspace
+DBCC SHRINKFILE (N'YourDatabase_Log', 1);
+
+```
+- ![alt text](image-524.png)
+- ![alt text](image-525.png)
+- ![alt text](image-526.png)
+- ![alt text](image-527.png)
+- ![alt text](image-528.png)
+- ![alt text](image-529.png)
+
+### Assess Growth/Fragmentation and report on free space
+- Monitor Database Size
+```sql
+SELECT 
+    CAST(SUM(reserved_page_count) * 8.0 / 1024 AS DECIMAL(10,2)) AS CurrentSizeMB,
+    (SELECT max_size / 128.0 FROM sys.database_service_objectives) AS MaxSizeMB,
+    CAST(SUM(reserved_page_count) * 8.0 / 1024 / (max_size / 128.0) * 100 AS DECIMAL(10,2)) AS PercentUsed
+FROM sys.dm_db_partition_stats;
+```
+- Run periodically (e.g., daily) and store results in a table for trend analysis
+```sql
+CREATE TABLE DatabaseGrowthLog (
+    LogDate DATETIME,
+    CurrentSizeMB DECIMAL(10,2),
+    MaxSizeMB DECIMAL(10,2),
+    PercentUsed DECIMAL(10,2)
+);
+INSERT INTO DatabaseGrowthLog
+SELECT GETDATE(), 
+       SUM(reserved_page_count) * 8.0 / 1024,
+       (SELECT max_size / 128.0 FROM sys.database_service_objectives),
+       SUM(reserved_page_count) * 8.0 / 1024 / (max_size / 128.0) * 100
+FROM sys.dm_db_partition_stats;
+
+
+```
+- Go to your database, check Storage under Monitoring to view historical size trends.
+- Use Database Watchers (preview) to collect and visualize storage metrics over time (unavailable in West Europe, North Europe).
+- Assess Index Fragmentation
+- Use sys.dm_db_index_physical_stats to identify fragmented indexes
+```sql
+SELECT 
+    t.name AS TableName,
+    i.name AS IndexName,
+    ips.avg_fragmentation_in_percent,
+    ips.page_count,
+    ips.avg_fragmentation_in_percent * ips.page_count AS FragmentationImpact
+FROM sys.dm_db_index_physical_stats(DB_ID(), NULL, NULL, NULL, 'LIMITED') AS ips
+JOIN sys.tables t ON t.object_id = ips.object_id
+JOIN sys.indexes i ON i.object_id = ips.object_id AND i.index_id = ips.index_id
+WHERE ips.avg_fragmentation_in_percent > 10 AND ips.page_count > 1000
+ORDER BY FragmentationImpact DESC;
+
+```
+- Focus on indexes with avg_fragmentation_in_percent > 10% and page_count > 1000 for maintenance (reorganize if 10-30%, rebuild if >30%).
+- Store results in a table for historical analysis
+```sql
+CREATE TABLE IndexFragmentationLog (
+    LogDate DATETIME,
+    TableName NVARCHAR(128),
+    IndexName NVARCHAR(128),
+    AvgFragmentationPercent DECIMAL(5,2),
+    PageCount INT
+);
+INSERT INTO IndexFragmentationLog
+SELECT 
+    GETDATE(),
+    t.name,
+    i.name,
+    ips.avg_fragmentation_in_percent,
+    ips.page_count
+FROM sys.dm_db_index_physical_stats(DB_ID(), NULL, NULL, NULL, 'LIMITED') AS ips
+JOIN sys.tables t ON t.object_id = ips.object_id
+JOIN sys.indexes i ON i.object_id = ips.object_id AND i.index_id = ips.index_id
+WHERE ips.avg_fragmentation_in_percent > 10 AND ips.page_count > 1000;
+```
+- Calculate free space in the database
+```sql
+SELECT 
+    CAST((SELECT max_size / 128.0 FROM sys.database_service_objectives) - 
+         SUM(reserved_page_count) * 8.0 / 1024 AS DECIMAL(10,2)) AS FreeSpaceMB,
+    CAST((SELECT max_size / 128.0 FROM sys.database_service_objectives) AS DECIMAL(10,2)) AS MaxSizeMB,
+    CAST((1 - (SUM(reserved_page_count) * 8.0 / 1024) / 
+         (SELECT max_size / 128.0 FROM sys.database_service_objectives)) * 100 AS DECIMAL(10,2)) AS PercentFree
+FROM sys.dm_db_partition_stats;
+```
+- File-Level Free Space: Check space in data and log files
+```sql
+SELECT 
+    name AS FileName,
+    type_desc AS FileType,
+    CAST(size / 128.0 AS DECIMAL(10,2)) AS CurrentSizeMB,
+    CAST(max_size / 128.0 AS DECIMAL(10,2)) AS MaxSizeMB,
+    CAST((max_size - size) / 128.0 AS DECIMAL(10,2)) AS FreeSpaceMB
+FROM sys.database_files
+WHERE type_desc IN ('ROWS', 'LOG');
+
+```
+- Table-Level Free Space: Identify tables with significant reserved but unused space
+```sql
+SELECT 
+    t.name AS TableName,
+    SUM(p.reserved_page_count) * 8.0 / 1024 AS ReservedMB,
+    SUM(p.used_page_count) * 8.0 / 1024 AS UsedMB,
+    (SUM(p.reserved_page_count) - SUM(p.used_page_count)) * 8.0 / 1024 AS FreeSpaceMB
+FROM sys.tables t
+JOIN sys.indexes i ON t.object_id = i.object_id
+JOIN sys.partitions p ON i.object_id = p.object_id AND i.index_id = p.index_id
+GROUP BY t.name
+ORDER BY FreeSpaceMB DESC;
+
+```
+- ![alt text](image-530.png)
+- ![alt text](image-531.png)
+- ![alt text](image-532.png)
+- ![alt text](image-533.png)
+- ![alt text](image-534.png)
+- ![alt text](image-535.png)
+- ![alt text](image-536.png)
+- ![alt text](image-537.png)
+- ![alt text](image-538.png)
+
+
+## Identify Performance Related Issues
+### Query Store
+- Query store contains three different stores,a plan store, for executing plan data,
+a runtime Store, for execution statistics data, and a waits stats store.
+- ![alt text](image-539.png)
+- ![alt text](image-540.png)
+- ![alt text](image-541.png)
+- ![alt text](image-542.png)
+- ![alt text](image-543.png)
+- ![alt text](image-544.png)
+- ![alt text](image-545.png)
+- Wait Stats in Azure SQL Database are performance metrics that track the time a query or process spends waiting for specific resources or events during execution. They help identify bottlenecks and performance issues by showing why queries are delayed.
+- Query Store is a feature that tracks query performance, execution plans, and runtime stats to optimize database performance.
+- Stores query text, plans, and metrics (CPU, I/O, duration).
+- Detects plan changes and performance regressions.
+- Allows forcing a known good plan manually or via auto-tuning.
+- Retains data for 30 days (default).
+- Enabled by default (except Basic tier).
+```sql
+ALTER DATABASE [YourDB] SET QUERY_STORE = ON (
+    MAX_STORAGE_SIZE_MB = 1000,
+    QUERY_CAPTURE_MODE = AUTO,
+    STALE_QUERY_THRESHOLD_DAYS = 30
+);
+
+```
+- use Azure Portal: Database > Query Store.
+- Usage:
+- Monitor Queries
+```sql
+SELECT q.query_id, qt.query_sql_text, AVG(rs.avg_cpu_time) AS AvgCPUTime
+FROM sys.query_store_query q
+JOIN sys.query_store_query_text qt ON q.query_text_id = qt.query_text_id
+JOIN sys.query_store_runtime_stats rs ON q.query_id = rs.query_id
+GROUP BY q.query_id, qt.query_sql_text
+ORDER BY AvgCPUTime DESC;
+
+```
+- Force Plan
+```sql
+EXEC sp_query_store_force_plan @query_id = [QueryID], @plan_id = [PlanID];
+```
+
+- Auto-Tuning
+```sql
+ALTER DATABASE [YourDB] SET AUTOMATIC_TUNING (FORCE_LAST_GOOD_PLAN = ON);
+```
+
+### Configure Query Store
+- Disabled by default on new SQL server databases on-prem or VMs but is enabled by default on Azure SQL Databases
+- ![alt text](image-546.png)
+- ![alt text](image-547.png)
+- ![alt text](image-548.png)
+- ![alt text](image-549.png)
+- ![alt text](image-550.png)
+- ![alt text](image-551.png)
+- ![alt text](image-552.png)
+- ![alt text](image-553.png)
+- ![alt text](image-554.png)
+- ![alt text](image-555.png)
+
+
+### Identify Sessions that can cause blocking
+- Blocking in Azure SQL Database occurs when one session holds a lock on a resource (e.g., table, row) and prevents other sessions from accessing it until the lock is released. This can delay queries, causing performance issues.
+- Query DMVs
+- Use sys.dm_exec_requests and sys.dm_exec_sessions to find blocking sessions
+```sql
+SELECT 
+    r.session_id AS BlockedSession,
+    r.blocking_session_id AS BlockingSession,
+    s.login_name,
+    r.wait_type,
+    r.wait_time / 1000.0 AS WaitTimeSeconds,
+    t.text AS QueryText
+FROM sys.dm_exec_requests r
+JOIN sys.dm_exec_sessions s ON r.session_id = s.session_id
+CROSS APPLY sys.dm_exec_sql_text(r.sql_handle) t
+WHERE r.blocking_session_id <> 0;
+
+```
+- This shows blocked sessions, the blocking session ID, and the query causing the block.
+- **Use sys.dm_tran_locks to see specific locks**
+```sql
+SELECT 
+    tl.resource_type,
+    tl.resource_description,
+    tl.request_session_id AS BlockingSession,
+    tl.request_mode AS LockMode,
+    t.text AS QueryText
+FROM sys.dm_tran_locks tl
+JOIN sys.dm_exec_connections c ON tl.request_session_id = c.session_id
+CROSS APPLY sys.dm_exec_sql_text(c.most_recent_sql_handle) t
+WHERE tl.request_status = 'GRANT' AND tl.request_session_id IN (
+    SELECT blocking_session_id FROM sys.dm_exec_requests WHERE blocking_session_id <> 0
+);
+
+```
+- Monitor with Query Store:Query Store tracks query performance and can correlate blocking with specific queries
+```sql
+SELECT 
+    q.query_id,
+    qt.query_sql_text,
+    rs.avg_duration,
+    rs.count_executions
+FROM sys.query_store_query q
+JOIN sys.query_store_query_text qt ON q.query_text_id = qt.query_text_id
+JOIN sys.query_store_runtime_stats rs ON q.query_id = rs.query_id
+WHERE qt.query_sql_text LIKE '%YourTableName%';
+
+```
+- Configure Database Watchers to monitor lock wait times and blocking metrics
+- Enable Intelligent Insights to detect blocking-related performance issues in the SQLInsights log.
+- Use NOLOCK or READPAST hints cautiously for read-heavy queries.
+- ![alt text](image-556.png)
+- ![alt text](image-557.png)
+
+
+### Isolation Levels
+- Isolation Levels in Azure SQL Database define how transactions isolate data access to prevent conflicts like dirty reads, non-repeatable reads, and phantom reads. They control the locking behavior and data visibility, directly impacting blocking.
+- Isolation Levels in Azure SQL Database control how transactions "see" and "lock" data when multiple users or processes access the database at the same time.
+- They determine how much one transaction interferes with another, affecting blocking (when one process waits for another).
+- **Think of a library where people (transactions) want to read or update a book (data)**
+- **READ UNCOMMITTED (Free-for-All)**
+- Anyone can grab a book and read it, even if someone is editing it.
+- No waiting (no blocking), but you might read a half-edited, incorrect version.
+- **READ COMMITTED (Default, Quick Check-Out)**
+- You can only read a book after the editor finishes and saves changes.
+- The editor locks the book while editing, so you wait (some blocking)
+- **REPEATABLE READ (Reserved Reading)**
+- You lock the book so no one can edit it while you’re reading
+- Others wait until you’re done (more blocking)
+- Ensures the book stays the same during your session, but new books can appear
+- **SERIALIZABLE (Private Library)**
+- You lock the entire bookshelf, so no one can edit or add books while you’re reading
+- Maximum waiting (highest blocking) but guarantees nothing changes.
+- **SNAPSHOT (Photocopy Access, Default in Azure SQL)**
+- You get a photocopy of the book as it was at the start of your session
+- No waiting for editors, and editors don’t wait for you (minimal blocking)
+- Your photocopy won’t reflect new edits, but it’s consistent
+- ![alt text](image-558.png)
+- Use SNAPSHOT (default in Azure SQL) for less blocking in most cases.
+- Higher isolation (like SERIALIZABLE) is for strict data consistency but causes more blocking.
+```sql
+ALTER DATABASE [YourDB] SET READ_COMMITTED_SNAPSHOT ON;
+```
+- ![alt text](image-559.png)
+- ![alt text](image-560.png)
+
+
+### Assess Performance Related Database Configuration Parameters
+- ![alt text](image-561.png)
+- ![alt text](image-562.png)
+- ![alt text](image-563.png)
+- Key parameters affecting performance include
+- Service Tier and DTU/vCore: Determines compute, memory, and I/O capacity.
+- Max Size: Limits storage capacity.
+- Auto-Tuning: Controls automatic index creation, dropping, and plan forcing.
+- Query Store: Tracks query performance and plan changes.
+- Read Committed Snapshot Isolation (RCSI): Reduces blocking via row versioning.
+- Compatibility Level: Affects query optimizer behavior.
+- Max Degree of Parallelism (MAXDOP): Controls parallel query execution.
+```sql
+-- Check Service Tier and Size
+SELECT 
+    database_name,
+    edition,
+    service_objective,
+    max_size / 1024.0 / 1024 AS MaxSizeGB
+FROM sys.database_service_objectives;
+
+-- Auto-Tuning Settings
+-- Verify if CREATE_INDEX, DROP_INDEX, and FORCE_LAST_GOOD_PLAN are ON.
+SELECT * FROM sys.database_automatic_tuning_options;
+
+-- Query Store Status
+-- Ensure Query Store is ON and has sufficient storage (e.g., 1000 MB).
+SELECT 
+    actual_state_desc,
+    current_storage_size_mb,
+    max_storage_size_mb,
+    stale_query_threshold_days
+FROM sys.database_query_store_options;
+
+-- Isolation Level (RCSI)
+-- RCSI should be ON (default) to reduce blocking.
+SELECT is_read_committed_snapshot_on 
+FROM sys.databases 
+WHERE name = DB_NAME();
+
+-- Compatibility Level
+-- Use the latest level (e.g., 160 for SQL Server 2022) for optimizer improvements.
+SELECT compatibility_level 
+FROM sys.databases 
+WHERE name = DB_NAME();
+
+```
+
+### Configure Intelligent Query Processing(IQP)
+- Intelligent Query Processing (IQP) in Azure SQL Database is a set of features that improve query performance with minimal effort.
+- It is supported in Azure SQL Database and Azure SQL Managed Instance for compatibility level 150.
+- ![alt text](image-564.png)
+- ![alt text](image-565.png)
+- ![alt text](image-566.png)
+- ![alt text](image-567.png)
+- ![alt text](image-568.png)
+- IQP features require a specific compatibility level (e.g., 150 for SQL Server 2019, 160 for SQL Server 2022).
+```sql
+SELECT compatibility_level 
+FROM sys.databases 
+WHERE name = DB_NAME();
+
+ALTER DATABASE [YourDB] SET COMPATIBILITY_LEVEL = 150;
+
+```
+- Some IQP features (e.g., Parameter Sensitive Plan Optimization) require Query Store
+```sql
+ALTER DATABASE [YourDB] SET QUERY_STORE (
+    MAX_STORAGE_SIZE_MB = 1000,
+    QUERY_CAPTURE_MODE = AUTO
+);
+```[](https://learn.microsoft.com/en-us/sql/relational-databases/performance/intelligent-query-processing?view=sql-server-ver16)
+
+```
+- Most IQP features (e.g., Adaptive Joins, Memory Grant Feedback) are enabled automatically with the right compatibility level.
+- **Intelligent Query Processing (IQP)** features in Azure SQL Database enhance query performance automatically. Here are the main features and their functions:
+
+1. **Adaptive Joins**:
+   - Dynamically chooses between join types (e.g., nested loop, hash) during execution.
+   - Improves performance for varying data sizes.
+
+2. **Memory Grant Feedback**:
+   - Adjusts memory allocation for queries based on past executions.
+   - Reduces memory over- or under-allocation, improving efficiency.
+
+3. **Batch Mode on Rowstore**:
+   - Processes queries in batches for row-based tables (no columnstore needed).
+   - Speeds up complex analytical queries.
+
+4. **Parameter Sensitive Plan Optimization**:
+   - Creates multiple execution plans for queries with varying parameters.
+   - Prevents performance issues from skewed data distributions.
+
+5. **Approximate Query Processing**:
+   - Uses `APPROX_COUNT_DISTINCT` for faster approximate counts.
+   - Boosts performance for large datasets with minimal accuracy trade-off.
+
+6. **Table Variable Deferred Compilation**:
+   - Delays table variable compilation until runtime.
+   - Improves plan accuracy for temporary table queries.
+
+### Notes
+- Enabled via compatibility level 150+ (e.g., `ALTER DATABASE [YourDB] SET COMPATIBILITY_LEVEL = 150`).
+- Some features (e.g., Parameter Sensitive Plan) require Query Store.
+- Monitor with Query Store or Database Watchers for performance gains.
+
+## Automate Database Maintenance Tasks
