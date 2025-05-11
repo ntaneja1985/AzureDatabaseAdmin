@@ -2412,3 +2412,1467 @@ ALTER DATABASE [YourDB] SET QUERY_STORE (
 - Monitor with Query Store or Database Watchers for performance gains.
 
 ## Automate Database Maintenance Tasks
+### Elastic Pool Agent
+- Lets assume we have plenty of databases in a pool 
+- You could have a lot of databases all of the place. So we've got two servers here, some of which are Azure SQL Database single databases and some which are in a pool.
+- Now, it might be that we need to do exactly the same thing to all of them. So it could be backups, though that is actually automated separately in SQL Database.
+- It could be you manage credentials, collect performance data, telemetry data, update reference data, so you might be updating a table within various databases.
+- You could be loading or summarising data from databases or Azure blob storage.
+- So in other words, you would have the same thing that you might want to be doing lots of different times.
+- So the targets could be in different servers.
+- They could be in different subscriptions.
+- They could be in different regions.
+- For Azure Sql Database, we need an Elastic Job Agent
+- This is an Azure Resource that runs these jobs and it is free. It has an Elastic Job Database. It stores Job related data. It is charged as per Azure SQL Database. Use Standard S0 or premium tier.
+- ![alt text](image-569.png)
+- We also need a master database credential so that all the databases could be enumerated, in other words, counted. We can choose to exclude individual databases or all databases in an elastic pool
+- A job which runs on Elastic Job Agent is a unit of work that contains job steps, each of which specify the T-SQL script and other details. Scripts also must be idempotent.
+- They can run twice and produce the same result.
+- We could have job output and job history which will be stored for 45 days
+- Do the follow steps to run an elastic pool agent
+- Go to elastic job database and add some credentials
+- Define our target group
+- Need to add credentials to individual databases and the server
+- We can add as many job steps as we want.
+- Then we run or schedule the job
+
+### Practical demonstration
+- Create Elastic Pool Database
+- ![alt text](image-570.png)
+- Create Elastic Job Agent and select the database created earlier.
+- ![alt text](image-571.png)
+- See that new tables and views are now created starting with "jobs"
+- ![alt text](image-572.png)
+- Next, create Database Master Key
+- ![alt text](image-573.png)
+- Next, create 2 Database scoped credentials
+- We need 1 to execute jobs and the other one to refresh database metadata in the server
+- ![alt text](image-574.png)
+- Next, create the target groups or servers we will look at.
+- ![alt text](image-575.png)
+- ![alt text](image-576.png)
+- In each database in the target group, we need to add a job agent credential
+- ![alt text](image-577.png)
+- Next, create a job and its job steps
+- ![alt text](image-578.png)
+- Next, run/schedule the job to run
+- ![alt text](image-579.png)
+- ![alt text](image-580.png)
+- Next, look at the job executions
+- ![alt text](image-581.png)
+- Look at Elastic Job Agents on Azure Portal
+- ![alt text](image-582.png)
+
+### Full, Differential and Transaction Log Backups
+- We will look at how to perform a database restore to a point in time.
+- A full backup is done every single week.
+- A differential backup is done every 12 to 24 hours.
+- A differential backup is the difference between the current state of the database
+and the last full backup.
+- Transaction Log backup is everything that's happened since the last transaction log backup
+- Transaction Log Backup is done every 5-10 minutes
+- By default, you can do a point in time restore backup of existing or deleted databases, up to seven days by default.
+- You can change it to between one and 35 days apart from basic, which has a maximum of seven days and apart from hyperscale.
+- ![alt text](image-583.png)
+- ![alt text](image-584.png)
+- ![alt text](image-585.png)
+- All of this works in the background.
+- ![alt text](image-586.png)
+- ![alt text](image-587.png)
+- ![alt text](image-588.png)
+- ![alt text](image-589.png)
+#### Restoring deleted databases
+- ![alt text](image-590.png)
+- ![alt text](image-591.png)
+- ![alt text](image-592.png)
+- The deleted database will restored to the same region as the original database server
+- To restore to a different region, create a new database in a different region. Create a different database server as well in a new region. 
+- ![alt text](image-593.png)
+- In Additional settings, select the backup which should be restored onto the new database
+- ![alt text](image-594.png)
+- Backups can be restored to a point-in-time to a default of 7 Days
+- ![alt text](image-595.png)
+- If we need to change the number of days go to the database server, and in data management in backups go to retention policies, click on particular database and select the number of days for which backup need to be kept, for a premium pricing tier we can configure backups to be kept for 35 days
+- ![alt text](image-596.png)
+- ![alt text](image-597.png)
+
+### Long term backup retention
+- This is both for Azure SQL Database and for Managed Instance
+- ![alt text](image-598.png)
+- LTR backups are done by Azure, cannot manually create LTR backup
+- Backups are stored in Azure Blob Storage
+- ![alt text](image-599.png)
+- What if database is deleted ? What happens to LTRs
+- Well, LTRs are still kept. So DB can still be restored from LTR. Only when backups expire, then they are deleted.
+
+
+## Recommend an HADR strategy for a data platform solution
+- We have the following SLAs
+- ![alt text](image-600.png)
+- Azure SQL Database Business Critical and Premium tiers configured as Zone redundant deployments have availability guarantee of atleast 99.99%
+- SLA for Virtual Machines
+- ![alt text](image-601.png)
+- RPO (Recovery Point Objective) : Basically the amount of data that we can lose.
+- RTO (Recovery Time Objective) : The amount of time that we can lose
+- SLA for Azure SQL Database:
+- ![alt text](image-602.png)
+#### High Availability (HA) -->Means the database is up most of the time
+- Geo-redundant deployment: Use Azure's paired regions (e.g., East US paired with West US) to deploy your data platform (e.g., Azure SQL Database, Cosmos DB, or Azure Data Lake).
+- Redundancy: Enable zone-redundant or geo-redundant storage for services like Azure Blob Storage or Azure SQL (e.g., use Always On availability groups or active geo-replication).
+- Load balancing: Implement Azure Traffic Manager or Azure Front Door for failover across regions.
+- Auto-scaling: Configure auto-scaling for compute resources (e.g., Azure Databricks or VMs) to handle load spikes.
+
+#### Disaster Recovery (DR) --> Means what do we do when something goes wrong
+- Backup: Enable automated backups with point-in-time restore (e.g., Azure SQL Database offers 7-35 days retention; Cosmos DB provides continuous backups).
+- Replication: Use geo-replication for critical data stores to ensure data is available in secondary regions.
+- Failover strategy: Set up automated failover for databases (e.g., Azure SQL failover groups) and test failover regularly.
+- Recovery Time Objective (RTO) and Recovery Point Objective (RPO): Align services to meet business needs (e.g., Cosmos DB offers RPO < 15 min, RTO < 1 hr with multi-region writes).
+- Use Azure Monitor and Application Insights to track performance and detect failures.
+- Regularly test DR plans with simulated failovers to ensure reliability.
+- Enable encryption at rest and in transit (e.g., TDE for Azure SQL, HTTPS for data transfers).
+- Use Azure Key Vault for secrets management.
+- Ensure compliance with standards like GDPR or HIPAA using Azure Policy.
+
+#### Azure Specific HADR Solutions
+- Geo-replication
+- Idea is to have different databases either in same region or different regions.
+- We can have secondary databases for each database
+- We can have upto 4 replicas for each database and then we can have replicas of each of those replicas
+- In this case the primary databsse does asynchronous replication
+- Initially, the secondary database is populated from the primary database through a process called seeding. 
+- Then updates are replicated asynchronously. 
+- This means that they are committed to primary before they are committed to secondary. 
+- This means secondary always lag behind the primary
+- Secondary service tier needs to be atleast same service tier as primary.
+- ![alt text](image-603.png)
+- What happens if i need to go to my primary from SSMS but my primary is down?
+- Do i copy over the connection string from secondary database?
+- So for situations like this we use **Failover Groups**
+- Failover group uses one primary and one secondary. If primary goes down, then we swap the primary and secondary. Now secondary because the primary 
+- With a failover group, we have a connection string to the group. So even if the actual server/database fails, then connection will still go to whosoever is still the primary.
+- ![alt text](image-604.png)
+- ![alt text](image-605.png)
+
+### Configuring Geo-Replication
+- ![alt text](image-606.png)
+- ![alt text](image-607.png)
+- ![alt text](image-608.png)
+- ![alt text](image-609.png)
+- ![alt text](image-610.png)
+- ![alt text](image-611.png)
+- Azure SQL Managed Instance can use Auto Failover Groups but not replicas.
+- Upto 4 secondaries or replicas are supported in the same or different regions and they can be part of an elastic pool
+- If we try to update data in replica we get this
+- ![alt text](image-612.png)
+- This is because replica database is read only.
+- Note that as soon as we make some updates in primary, it is very quickly replicated in the secondary database
+- Lets do a failover
+- ![alt text](image-613.png)
+- ![alt text](image-614.png)
+ - Now replica becomes primary
+ - ![alt text](image-615.png)
+ - Here we have a new connection string to connect to the new primary database which was earlier referred to as the secondary replica.
+
+### Configure Auto-Failover groups
+- Used in Azure SQL and Azure Managed Instance
+- ![alt text](image-616.png)
+- ![alt text](image-617.png)
+- We cannot choose the server from the same region
+- ![alt text](image-618.png)
+- ![alt text](image-619.png)
+- ![alt text](image-620.png)
+- Use Auto-failover groups when your data is mission critical
+- Failover groups are expensive.
+- ![alt text](image-621.png)
+- ![alt text](image-622.png)
+- ![alt text](image-623.png)
+- ![alt text](image-624.png)
+- ![alt text](image-625.png)
+- We can edit the policy, remove databases and do Forced Failover for testing
+- After switchover in case of failover we get this
+- ![alt text](image-626.png)
+- Secondary is primary and primary is secondary
+- But note, that the connection string remains the same
+
+## Perform Administration by using T-SQL
+### Evaluate Database Health using DMVs
+- ![alt text](image-627.png)
+- ![alt text](image-628.png)
+- ![alt text](image-629.png)
+- ![alt text](image-630.png)
+- ![alt text](image-631.png)
+- ![alt text](image-632.png)
+- ![alt text](image-633.png)
+- We may have 2-3 transactions that are going on at the same time. 
+- We may need to know about the wait time of each transaction in the case when one transaction is waiting for other transactions to complete and release resources
+- ![alt text](image-634.png)
+- ![alt text](image-635.png)
+- ![alt text](image-636.png)
+- ![alt text](image-637.png)
+- ![alt text](image-638.png)
+
+### Database Health DMVs Summary
+
+Below is a summary of key Dynamic Management Views (DMVs) in SQL Server used to evaluate database health, including a short description and example query for each.
+
+## 1. sys.dm_exec_requests
+**Description**: Provides information about currently executing requests, helping identify long-running queries or blocked sessions that may indicate performance issues.
+
+**Example**:
+```sql
+SELECT session_id, status, blocking_session_id, wait_type, wait_time, 
+       command, sql_handle, database_id
+FROM sys.dm_exec_requests
+WHERE status = 'running' OR blocking_session_id <> 0;
+```
+
+## 2. sys.dm_os_wait_stats
+**Description**: Tracks wait statistics for server resources, revealing bottlenecks like CPU, I/O, or memory pressure.
+
+**Example**:
+```sql
+SELECT wait_type, wait_time_ms, waiting_tasks_count, 
+       wait_time_ms / waiting_tasks_count AS avg_wait_time_ms
+FROM sys.dm_os_wait_stats
+WHERE wait_type NOT LIKE '%SLEEP%' AND wait_time_ms > 0
+ORDER BY wait_time_ms DESC;
+```
+
+## 3. sys.dm_db_index_physical_stats
+**Description**: Analyzes index fragmentation and page density, helping assess maintenance needs for optimal query performance.
+
+**Example**:
+```sql
+SELECT database_id, object_id, index_id, partition_number, 
+       avg_fragmentation_in_percent, page_count
+FROM sys.dm_db_index_physical_stats(DB_ID(), NULL, NULL, NULL, 'LIMITED')
+WHERE avg_fragmentation_in_percent > 10;
+```
+
+## 4. sys.dm_exec_query_stats
+**Description**: Provides aggregated performance statistics for cached query plans, useful for identifying high-cost queries.
+
+**Example**:
+```sql
+SELECT TOP 10 total_worker_time, total_elapsed_time, execution_count, 
+       total_logical_reads, total_physical_reads, 
+       SUBSTRING(st.text, (qs.statement_start_offset/2) + 1, 
+       ((qs.statement_end_offset - qs.statement_start_offset)/2) + 1) AS query_text
+FROM sys.dm_exec_query_stats qs
+CROSS APPLY sys.dm_exec_sql_text(qs.sql_handle) st
+ORDER BY total_worker_time DESC;
+```
+
+## 5. sys.dm_io_virtual_file_stats
+**Description**: Monitors I/O performance for database files, identifying slow disk operations or I/O bottlenecks.
+
+**Example**:
+```sql
+SELECT DB_NAME(database_id) AS database_name, file_id, 
+       num_of_reads, num_of_writes, 
+       io_stall_read_ms, io_stall_write_ms
+FROM sys.dm_io_virtual_file_stats(NULL, NULL)
+WHERE num_of_reads > 0 OR num_of_writes > 0;
+```
+
+## 6. sys.dm_os_performance_counters
+**Description**: Tracks SQL Server performance counters like page life expectancy or buffer cache hit ratio, indicating memory health.
+
+**Example**:
+```sql
+SELECT object_name, counter_name, cntr_value
+FROM sys.dm_os_performance_counters
+WHERE counter_name IN ('Page life expectancy', 'Buffer cache hit ratio')
+AND object_name LIKE '%Buffer Manager%';
+```
+
+## 7. sys.dm_tran_locks
+**Description**: Displays information about current locks, helping diagnose locking conflicts or deadlocks affecting concurrency.
+
+**Example**:
+```sql
+SELECT resource_type, resource_database_id, resource_description, 
+       request_mode, request_status, request_session_id
+FROM sys.dm_tran_locks
+WHERE resource_database_id = DB_ID('YourDatabaseName');
+```
+
+## 8. sys.dm_db_missing_index_details
+**Description**: Identifies missing indexes that could improve query performance based on query execution patterns.
+
+**Example**:
+```sql
+SELECT statement AS table_name, equality_columns, inequality_columns, 
+       included_columns, avg_user_impact
+FROM sys.dm_db_missing_index_details
+CROSS APPLY sys.dm_db_missing_index_groups
+CROSS APPLY sys.dm_db_missing_index_group_stats
+WHERE database_id = DB_ID('YourDatabaseName');
+```
+## Server Health DMVs Summary
+- ![alt text](image-639.png)
+- ![alt text](image-640.png)
+Below is a summary of key Dynamic Management Views (DMVs) in SQL Server used to evaluate server health, including a short description and example query for each.
+
+## 1. sys.dm_os_sys_info
+**Description**: Provides system-level information such as CPU count, physical memory, and SQL Server start time, useful for assessing server capacity.
+
+**Example**:
+```sql
+SELECT cpu_count, physical_memory_kb / 1024 AS physical_memory_mb, 
+       sqlserver_start_time
+FROM sys.dm_os_sys_info;
+```
+
+## 2. sys.dm_os_performance_counters
+**Description**: Monitors server-wide performance metrics like transactions/sec or compilation rates, indicating overall server workload and health.
+
+**Example**:
+```sql
+SELECT object_name, counter_name, cntr_value
+FROM sys.dm_os_performance_counters
+WHERE counter_name IN ('Transactions/sec', 'Batch Requests/sec')
+AND object_name LIKE '%SQL Statistics%';
+```
+
+## 3. sys.dm_os_wait_stats
+**Description**: Tracks cumulative wait times for server resources, helping identify bottlenecks such as CPU, memory, or disk I/O issues.
+
+**Example**:
+```sql
+SELECT wait_type, wait_time_ms, waiting_tasks_count, 
+       wait_time_ms / waiting_tasks_count AS avg_wait_time_ms
+FROM sys.dm_os_wait_stats
+WHERE wait_type NOT LIKE '%SLEEP%' AND wait_time_ms > 0
+ORDER BY wait_time_ms DESC;
+```
+
+## 4. sys.dm_exec_sessions
+**Description**: Provides details on active user sessions, including login time, host, and resource usage, useful for monitoring server load.
+
+**Example**:
+```sql
+SELECT session_id, login_name, host_name, program_name, 
+       cpu_time, memory_usage, login_time
+FROM sys.dm_exec_sessions
+WHERE is_user_process = 1;
+```
+
+## 5. sys.dm_os_memory_clerks
+**Description**: Shows memory allocation details for different server components, helping diagnose memory pressure or leaks.
+
+**Example**:
+```sql
+SELECT type, pages_kb / 1024 AS memory_mb, single_pages_kb, multi_pages_kb
+FROM sys.dm_os_memory_clerks
+WHERE pages_kb > 0
+ORDER BY pages_kb DESC;
+```
+
+## 6. sys.dm_os_ring_buffers
+**Description**: Accesses diagnostic data like resource usage or exceptions from ring buffers, useful for troubleshooting server issues.
+
+**Example**:
+```sql
+SELECT record_id, timestamp, 
+       CAST(record AS XML).value('(/Record/ResourceMonitor/Notification)[1]', 'nvarchar(512)') AS notification
+FROM sys.dm_os_ring_buffers
+WHERE ring_buffer_type = 'RING_BUFFER_RESOURCE_MONITOR';
+```
+
+## 7. sys.dm_server_services
+**Description**: Provides information about SQL Server services, including status, startup type, and last startup time, ensuring services are running correctly.
+
+**Example**:
+```sql
+SELECT servicename, status_desc, startup_type_desc, last_startup_time
+FROM sys.dm_server_services;
+```
+
+## 8. sys.dm_os_schedulers
+**Description**: Monitors scheduler activity, including task counts and CPU usage, to detect CPU pressure or imbalanced workloads.
+
+**Example**:
+```sql
+SELECT scheduler_id, cpu_id, is_online, current_tasks_count, 
+       runnable_tasks_count, work_queue_count
+FROM sys.dm_os_schedulers
+WHERE status = 'VISIBLE ONLINE';
+```
+# Database Consistency Checks with DBCC Summary
+- ![alt text](image-641.png)
+- ![alt text](image-642.png)
+- ![alt text](image-643.png)
+- ![alt text](image-644.png)
+
+Below is a summary of key Database Consistency Check (DBCC) commands in SQL Server used to perform database consistency checks, including a short description and example for each.
+
+## 1. DBCC CHECKDB
+**Description**: Performs a comprehensive check of the database, verifying the logical and physical integrity of all objects, including tables, indexes, and system catalogs.
+
+**Example**:
+```sql
+DBCC CHECKDB ('YourDatabaseName') WITH NO_INFOMSGS, ALL_ERRORMSGS;
+```
+
+## 2. DBCC CHECKTABLE
+**Description**: Checks the integrity of a specific table or indexed view, including its data pages, indexes, and constraints, useful for targeted validation.
+
+**Example**:
+```sql
+DBCC CHECKTABLE ('YourDatabaseName.dbo.YourTableName') WITH NO_INFOMSGS;
+```
+
+## 3. DBCC CHECKCATALOG
+**Description**: Validates the consistency of the system catalog metadata within a database, ensuring no corruption in system tables.
+
+**Example**:
+```sql
+DBCC CHECKCATALOG ('YourDatabaseName') WITH NO_INFOMSGS;
+```
+
+## 4. DBCC CHECKALLOC
+**Description**: Verifies the consistency of disk space allocation structures, such as allocation units and extents, to detect allocation errors.
+
+**Example**:
+```sql
+DBCC CHECKALLOC ('YourDatabaseName') WITH NO_INFOMSGS;
+```
+
+## 5. DBCC CHECKFILEGROUP
+**Description**: Checks the integrity of all tables and indexes within a specific filegroup, useful for validating a subset of the database.
+
+**Example**:
+```sql
+DBCC CHECKFILEGROUP ('YourDatabaseName', 'PRIMARY') WITH NO_INFOMSGS;
+```
+
+## 6. DBCC CHECKIDENT
+**Description**: Verifies and optionally repairs the identity column values for a table, ensuring no gaps or inconsistencies in identity sequences.
+
+**Example**:
+```sql
+DBCC CHECKIDENT ('YourDatabaseName.dbo.YourTableName', RESEED, 1);
+```
+
+## 7. DBCC CHECKCONSTRAINTS
+**Description**: Validates the integrity of specific constraints (e.g., CHECK or FOREIGN KEY) on a table, ensuring data complies with defined rules.
+
+**Example**:
+```sql
+DBCC CHECKCONSTRAINTS ('YourDatabaseName.dbo.YourTableName') WITH ALL_CONSTRAINTS;
+```
+
+## 8. DBCC DBINFO
+**Description**: Returns metadata about the database, including the last known good DBCC CHECKDB execution, useful for tracking consistency check history.
+
+**Example**:
+```sql
+DBCC DBINFO ('YourDatabaseName') WITH TABLERESULTS;
+```
+
+### Review Database Configuration Options
+- ![alt text](image-645.png)
+###  Database Configuration Options Summary
+
+Below is a summary of key database configuration options in SQL Server that can be used to manage and optimize database behavior, including a short description and example for each. These options are typically set using the `ALTER DATABASE` statement or `sp_configure` for server-wide settings affecting databases.
+
+## 1. AUTO_CLOSE
+**Description**: Determines whether the database is closed and its resources released when no users are connected, reducing memory usage but increasing reopen overhead.
+
+**Example**:
+```sql
+ALTER DATABASE YourDatabaseName SET AUTO_CLOSE OFF;
+```
+
+## 2. AUTO_SHRINK
+**Description**: Enables automatic shrinking of database files when unused space exceeds a threshold, but can cause fragmentation and performance issues if overused.
+
+**Example**:
+```sql
+ALTER DATABASE YourDatabaseName SET AUTO_SHRINK OFF;
+```
+
+## 3. RECOVERY
+**Description**: Sets the recovery model (FULL, BULK_LOGGED, or SIMPLE), controlling transaction log behavior and backup/restore capabilities.
+
+**Example**:
+```sql
+ALTER DATABASE YourDatabaseName SET RECOVERY FULL;
+```
+
+## 4. AUTO_CREATE_STATISTICS
+**Description**: Automatically creates statistics on columns used in queries to improve query performance, but may increase maintenance overhead.
+
+**Example**:
+```sql
+ALTER DATABASE YourDatabaseName SET AUTO_CREATE_STATISTICS ON;
+```
+
+## 5. AUTO_UPDATE_STATISTICS
+**Description**: Automatically updates statistics when data changes significantly, ensuring the query optimizer has current data distribution information.
+
+**Example**:
+```sql
+ALTER DATABASE YourDatabaseName SET AUTO_UPDATE_STATISTICS ON;
+```
+
+## 6. READ_COMMITTED_SNAPSHOT
+**Description**: Enables row versioning for read-committed isolation, reducing blocking by allowing readers to access a snapshot of data.
+
+**Example**:
+```sql
+ALTER DATABASE YourDatabaseName SET READ_COMMITTED_SNAPSHOT ON;
+```
+
+## 7. ALLOW_SNAPSHOT_ISOLATION
+**Description**: Enables snapshot isolation level, allowing transactions to read a consistent snapshot of data, improving concurrency.
+
+**Example**:
+```sql
+ALTER DATABASE YourDatabaseName SET ALLOW_SNAPSHOT_ISOLATION ON;
+```
+
+## 8. PARAMETERIZATION
+**Description**: Controls whether queries are parameterized automatically (SIMPLE) or forced (FORCED), affecting plan reuse and performance.
+
+**Example**:
+```sql
+ALTER DATABASE YourDatabaseName SET PARAMETERIZATION SIMPLE;
+```
+## 9. SINGLE_USER
+**Description**: Restricts database access to a single user connection at a time, useful for maintenance tasks like repairs or restores, preventing concurrent access.
+
+**Example**:
+```sql
+ALTER DATABASE YourDatabaseName SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+```
+
+## 10. MULTI_USER
+**Description**: Allows multiple users to connect to the database simultaneously, the default mode for normal operation, enabling concurrent access.
+
+**Example**:
+```sql
+ALTER DATABASE YourDatabaseName SET MULTI_USER;
+```
+
+## Introduction to VMs and Managed Instances
+- ![alt text](image-646.png)
+- ![alt text](image-647.png)
+- ![alt text](image-648.png)
+- ![alt text](image-649.png)
+- ![alt text](image-650.png)
+- ![alt text](image-651.png)
+- Why create Azure Managed SQL Instance
+- You’re migrating an on-premises SQL Server app to the cloud and want it to work  almost the same without big code changes.
+- Your app uses advanced SQL Server features (e.g., SQL Agent for scheduled jobs, cross-database queries, or CLR integration) that Azure SQL Database doesn’t fully support.
+- You need enterprise-grade security with a private network but don’t want to manage servers like with Azure SQL on VM.
+- CLR Integration (Common Language Runtime Integration) is a feature in SQL Server that lets you write custom code in languages like C# or VB.NET and run it inside the SQL Server database. Instead of using only T-SQL (SQL Server’s query language), you can create stored procedures, functions, triggers, or aggregates in a .NET language to handle complex logic, calculations, or tasks that T-SQL isn’t great at.
+
+- Think of it like adding a super-powerful calculator to SQL Server. You write the code in C#, compile it, and SQL Server can use it as if it’s a regular database function or procedure.
+```c#
+using System;
+using Microsoft.SqlServer.Server;
+
+public class MathFunctions
+{
+    [SqlFunction]
+    public static double Sqrt(double number)
+    {
+        if (number < 0)
+            throw new ArgumentException("Input must be non-negative.");
+        return Math.Sqrt(number);
+    }
+}
+
+```
+- The [SqlFunction] attribute tells SQL Server this is a database function.
+- The function takes a number and returns its square root using .NET’s Math.Sqrt.
+- Compile the C# code into a DLL (e.g., MathFunctions.dll).
+- Save the DLL to a location accessible by your SQL Server (e.g., C:\CLR\MathFunctions.dll).
+- Run the following command to allow clr code
+```sql
+EXEC sp_configure 'clr enabled', 1;
+RECONFIGURE;
+
+```
+- Load the DLL into SQL Server
+```sql
+CREATE ASSEMBLY MathFunctions
+FROM 'C:\CLR\MathFunctions.dll'
+WITH PERMISSION_SET = SAFE;
+
+```
+- PERMISSION_SET = SAFE: Ensures the code only accesses database resources, not external systems, for security.
+- Link the C# function to a SQL Server function:
+```sql
+CREATE FUNCTION dbo.Sqrt(@number float)
+RETURNS float
+AS EXTERNAL NAME MathFunctions.[MathFunctions].Sqrt;
+```
+- EXTERNAL NAME points to the assembly (MathFunctions), class (MathFunctions), and method (Sqrt).
+- Now you can use the function in T-SQL queries:
+```sql
+SELECT dbo.Sqrt(16.0) AS SquareRoot;
+```
+- You can also use it in bigger queries
+```sql
+SELECT column_name, dbo.Sqrt(column_name) AS sqrt_value
+FROM YourTable
+WHERE column_name >= 0;
+```
+
+### Real-World Use Case
+- Imagine you need a function to parse complex JSON strings or calculate geographic distances between coordinates. T-SQL struggles with these, but C# has powerful libraries. You’d:
+
+- Write a C# function using .NET’s JSON or math libraries.
+- Deploy it as a CLR function.
+- Call it in SQL queries to process data efficiently.
+- Azure SQL Managed Instance supports CLR Integration, unlike Azure SQL Database, which doesn’t. If your on-premises app relies on CLR functions (like the one above), Managed Instance lets you migrate without rewriting that code, making it a key differentiator for legacy SQL Server apps.
+- Performance: CLR is great for logic-heavy tasks but might be overkill for simple queries T-SQL can handle.
+- ![alt text](image-652.png)
+- ![alt text](image-653.png)
+- ![alt text](image-654.png)
+- ![alt text](image-655.png)
+- ![alt text](image-656.png)
+- ![alt text](image-657.png)
+- If we are not able to connect, add a security rule to NSG
+- Comparison between Azure SQL and Azure Managed Instance
+- ![alt text](image-658.png)
+- Create new database in Azure Managed Instance
+- ![alt text](image-659.png)
+- ![alt text](image-660.png)
+
+### Implement Copy and Move Database from One Azure Managed Instance to another
+- This can be useful for when you want to manage database size and performance, when you want to balance workloads and resources across several managed instances,
+when you have different environments, say a development, a test, and a production environment.
+- So, you might expand your databases in the development environment, copy it into the test environment to make sure that it works with all of the other databases, and only after that has been completed, move it into the production environment.
+- It's also useful if you want to combine databases from multiple instances.
+- ![alt text](image-661.png)
+- ![alt text](image-662.png)
+- ![alt text](image-663.png)
+- ![alt text](image-664.png)
+- ![alt text](image-665.png)
+- ![alt text](image-666.png)
+- ![alt text](image-667.png)
+- Copy and Move operation must be completed in 24 hours or it is cancelled
+
+
+### Configure SQL Server in Azure VM
+- ![alt text](image-668.png)
+- ![alt text](image-669.png)
+- ![alt text](image-670.png)
+- ![alt text](image-671.png)
+- ![alt text](image-672.png)
+- ![alt text](image-673.png)
+- ![alt text](image-674.png)
+
+### Best Practices for SQL Server on Azure VMs
+- You should enable backup compression and instant file initialization.
+- You should limit auto-growth and disable auto-shrink.
+- So we've spoken about disabling auto-shrink, auto-growth limitation, well you probably don't want it to go out of control.
+- You should use one tempdb data file per call,
+up to eight files.
+- You should apply any cumulative updates for your version of SQL Server.
+- So if you've got SQL Server 2012, then you should have the latest version of SQL Server 2012, say surface pack free.
+- You may wish to consider registering with the SQL IaaS Agent extension
+- And you should enable auto shut-down for development
+and test environments.
+
+### Logging into Azure VM
+- Use Azure Bastion to connect to the VM
+- ![alt text](image-675.png)
+- We can see in our VM that we have 4 disks
+- ![alt text](image-676.png)
+- We may want to increase the number of disks for our VM
+- ![alt text](image-677.png)
+- We can specify the Disk Caching Level
+- It's a way for improving the time it takes for reading or writing.
+- So it holds a bit of what is just read for instance,
+in its memory.
+- Now it should be "read-only" for SQL server data files.
+As that improves reads from cache, which is much faster than reads from memory.
+- It should be "none" for SQL server log files because the disc is written sequentially, and therefore you don't need to be able to reread it that quickly.
+- Read/write caching shouldn't be used for SQL server files, as SQL server does not support data consistency with this cache type.
+- However, it could be used for the operating system drive, the Windows drive, but it's not recommended to change the OS caching.
+- Any changes to the disc caching will require a reboot.
+- And we can also delete discs if we wish to.
+- We can do striping i.e adding 2 more disks to create a new disk
+- It is also called a storage pool
+- We can create a new Virtual Disk
+- ![alt text](image-678.png)
+- ![alt text](image-679.png)
+- ![alt text](image-680.png)
+- We can also create a Volume
+- This is how we can add additional disks to our Azure VM
+
+## Configure Database Authentication and Filegroups
+### Create Users from Azure AD Identities
+- ![alt text](image-681.png)
+- ![alt text](image-682.png)
+- Logins and Users are kept separately
+- Microsoft recommends creating a login inside master db and create user inside the actual db.
+- ![alt text](image-683.png)
+- How to create a Login for an AD user inside the MI
+- First we have to give Managed Instance permission to act as admin for the Active Directory
+- ![alt text](image-684.png)
+- Now we can specify an Admin User which will have permissions to the Azure AD
+- Now we can create Login for the External Provider
+- We can also add additional logins also
+- ![alt text](image-685.png)
+- Logins can do SQL Agent Management and Job Executions, database backup and restore operations, auditing, trigger log on triggers and setup server brokers and DB email.
+- With Azure SQL on VM, we dont have access to the External Provider, so we csn create a login with a password
+- ![alt text](image-686.png)
+- To get a list of server principals(users) for a db we can run this command:
+- ![alt text](image-687.png)
+
+### Manage Certificates using T-SQL
+- ![alt text](image-688.png)
+- We can create a self-signed certificate or get a crt/pem file.
+- We can view the created certificate here:
+- ![alt text](image-689.png)
+- Azure Key Vault can manage customer certifictes
+- ![alt text](image-690.png)
+- To alter the certificate:
+- ![alt text](image-691.png)
+
+### Configure Database and Object Level Permissions using GUI
+- Azure SQL Database has no GUI to add Database Roles
+- On the other hand, the Managed Instance and SQL Server on VM, we get a full fledged GUI to add roles
+- ![alt text](image-692.png)
+- We can secure objects of the following types:
+- ![alt text](image-693.png)
+
+### Configure Security Principals(MI and VMs)
+- ![alt text](image-694.png)
+- ![alt text](image-695.png)
+
+### Recommend table, index storage incl. filegroups(MI and VMs)
+- Azure Sql database only support one file
+- There are 3 different types of files in SQL Database:
+- Data Files (.mdf): These are the primary files that store the actual data, including tables, rows, and user-defined objects like indexes. The primary data file is usually denoted with the .mdf extension (e.g., in SQL Server).
+- Log Files (.ldf): These files store the transaction log, which records all database transactions and changes. They are critical for recovery and maintaining database consistency, typically using the .ldf extension in SQL Server.
+- Secondary Data Files (.ndf): These are optional files used to store additional data to distribute the database across multiple files or disks for performance or size management. They are often denoted with the .ndf extension. 
+- ![alt text](image-696.png)
+- ![alt text](image-697.png)
+- A filegroup in SQL (specifically in Microsoft SQL Server) is a logical structure that groups one or more database files (data files) together to manage storage and improve performance. It allows you to organize and distribute database objects (like tables, indexes, or large objects) across multiple files or disks for better scalability, maintenance, and performance.
+- Primary Filegroup: Contains the primary data file (.mdf) and system tables. Every database has one primary filegroup.
+- User-Defined Filegroups: Created by the user to store additional data files (.ndf) for specific tables, indexes, or large objects.
+- Default Filegroup: The filegroup where objects are stored if no filegroup is specified (by default, this is the primary filegroup unless changed).
+- A filegroup can contain multiple data files (.mdf or .ndf), but log files (.ldf) are not part of filegroups; they are managed separately.
+- ![alt text](image-698.png)
+- ![alt text](image-699.png)
+- ![alt text](image-700.png)
+- ![alt text](image-701.png)
+- ![alt text](image-702.png)
+- ![alt text](image-703.png)
+- ![alt text](image-704.png)
+- ![alt text](image-705.png)
+- ![alt text](image-706.png)
+- ![alt text](image-707.png)
+
+## Evaluate and Implement an Alert Notification Strategy
+- This doesnot work for Azure Sql Database or Azure Managed Instance Instance as we dont have Sql Server Agent Alerts
+- ![alt text](image-708.png)
+- ![alt text](image-709.png)
+- ![alt text](image-710.png)
+- ![alt text](image-711.png)
+
+### Configure Notifications for Task Success/Failure/Completion
+- We need to create an operator
+- Operators can be created in Azure MI also
+- ![alt text](image-712.png)
+- ![alt text](image-713.png)
+- ![alt text](image-714.png)
+- ![alt text](image-715.png)
+- ![alt text](image-716.png)
+- ![alt text](image-717.png)
+- In SQL Server Agent, operators are individuals or groups configured to receive notifications (via email, pager, or NET SEND) about job status, alerts, or events.
+- Purpose: Notify about job outcomes (success/failure) or alerts (e.g., errors).
+- Notification Methods: Email, pager, or NET SEND (deprecated).
+- Availability: Can have schedules for when notifications are sent.
+- Management: Configured in SSMS (SQL Server Agent > Operators) or via T-SQL in msdb.
+```sql
+-- Create operator
+USE msdb;
+EXEC sp_add_operator 
+    @name = N'DBA_Team', 
+    @email_address = N'dba@company.com';
+
+-- Assign to job
+EXEC sp_update_job 
+    @job_name = N'BackupJob', 
+    @notify_level_email = 2, -- On failure
+    @notify_email_operator_name = N'DBA_Team';
+
+```
+### Manage Schedules and Automate Maintenance Jobs
+- Since this uses SQL Server Agent, this is for VM and Azure MI
+- ![alt text](image-718.png)
+- ![alt text](image-719.png)
+- ![alt text](image-720.png)
+- ![alt text](image-721.png)
+- ![alt text](image-722.png)
+- ![alt text](image-723.png)
+- ![alt text](image-724.png)
+- ![alt text](image-725.png)
+- ![alt text](image-726.png)
+- ![alt text](image-727.png)
+
+### Create Alerts for Database Configuration Changes
+- ![alt text](image-728.png)
+- ![alt text](image-729.png)
+- ![alt text](image-730.png)
+### Split and Filter Event Notifications for Azure Resources
+- ![alt text](image-731.png)
+- ![alt text](image-732.png)
+- ![alt text](image-733.png)
+- This can be done only with Azure SQL for VM
+
+## Performance Related Issues in VMs
+- We will look at 2 additional sources of performance metrics in VMs
+- We will look at perf-mon
+- ![alt text](image-734.png)
+- SQL Server also includes its metrics in Perf-Mon
+- ![alt text](image-735.png)
+- ![alt text](image-736.png)
+- We can also use VM-Insights
+- ![alt text](image-737.png)
+- ![alt text](image-738.png)
+- ![alt text](image-739.png)
+- ![alt text](image-740.png)
+- ![alt text](image-741.png)
+
+### Implement Index Maintenance Tasks
+- We can tune queries in Database Engine Tuning Advisor
+- ![alt text](image-742.png)
+- ![alt text](image-743.png)
+- ![alt text](image-744.png)
+- ![alt text](image-745.png)
+- ![alt text](image-746.png)
+- ![alt text](image-747.png)
+- DETA is an additional way of analyzing and optimizing queries
+
+### Monitor Activity: SQL Profile, Extended Events, Performance Dashboard
+- To find blocking sessions on MI and VM, we have a much simpler way:
+- ![alt text](image-748.png)
+- ![alt text](image-749.png)
+- SQL Profiler is now deprecated
+- Instead we use Extended Events, it is more lightweight
+- We can use it for troubleshooting, blocking and dead locking performance issues, identifying longer running queries, monitoring DDL operations, logging missing column statistics and observing memory pressure on our database and long running physical I/O operations
+- ![alt text](image-750.png)
+- ![alt text](image-751.png)
+- ![alt text](image-752.png)
+- ![alt text](image-753.png)
+- ![alt text](image-754.png)
+- ![alt text](image-755.png)
+- ![alt text](image-756.png)
+- ![alt text](image-757.png)
+- ![alt text](image-758.png)
+- ![alt text](image-759.png)
+- ![alt text](image-760.png)
+- ![alt text](image-761.png)
+
+### Configure Resource Governor for performance(VM/MI)
+- The Resource Governor in SQL Server is a feature that allows you to manage and allocate system resources (like CPU, memory, and I/O) among different workloads or applications accessing the database. It helps ensure that critical tasks get sufficient resources while preventing less important tasks from consuming excessive resources, thus maintaining overall system performance and stability.
+- Workload Groups: These are logical containers for similar types of database sessions (e.g., queries from a specific application or user group). You can define policies for each group, such as resource limits.
+- Resource Pools: These represent a portion of the server's resources (CPU, memory, I/O). Workload groups are assigned to resource pools, and each pool has defined resource limits or priorities.
+- Classifier Function: A user-defined function that determines which workload group a session belongs to based on criteria like user name, application name, or connection properties.
+- Resource Limits: You can set minimum and maximum limits for CPU usage, memory, and I/O for each resource pool, as well as control the degree of parallelism for queries.
+- How It Works:
+- When a session connects to SQL Server, the classifier function assigns it to a workload group.
+- The workload group is mapped to a resource pool, which dictates the resources the session can use.
+- Resource Governor enforces the defined limits, ensuring fair resource distribution or prioritization.
+- Prioritizing Critical Workloads: Ensure high-priority applications (e.g., reporting queries) get more resources than low-priority tasks (e.g., batch jobs).
+- Limiting Resource Usage: Prevent a single user or application from overloading the server.
+- Multi-Tenant Environments: Allocate resources fairly among different clients or databases on a shared server.
+- Performance Tuning: Stabilize performance by controlling resource contention.
+- ![alt text](image-762.png)
+- ![alt text](image-763.png)
+- ![alt text](image-764.png)
+- ![alt text](image-765.png)
+- ![alt text](image-766.png)
+- ![alt text](image-767.png)
+- ![alt text](image-768.png)
+- ![alt text](image-769.png)
+- ![alt text](image-770.png)
+
+## Create Scheduled Tasks
+- We need to apply patches and updates for SQL Server in VMs
+- ![alt text](image-771.png)
+- ![alt text](image-772.png)
+- ![alt text](image-773.png)
+- ![alt text](image-774.png)
+
+### Implement Azure Key Vault and Disk Encryption for Azure VMs
+- ![alt text](image-775.png)
+- ![alt text](image-776.png)
+- ![alt text](image-777.png)
+- ![alt text](image-778.png)
+- ![alt text](image-779.png)
+- ![alt text](image-780.png)
+
+### Configure Multi-server automation
+- ![alt text](image-781.png)
+- FOr Azure SQL MI and VM, when we create a job, we can target the local server or multiple target servers
+- For this we need a master server and other target servers
+- SQL Server Agent is always running for MI but not running for VMs
+- ![alt text](image-782.png)
+- ![alt text](image-783.png)
+- ![alt text](image-784.png)
+- ![alt text](image-785.png)
+- ![alt text](image-786.png)
+- ![alt text](image-787.png)
+- ![alt text](image-788.png)
+- ![alt text](image-789.png)
+
+### Implement Policies by using Automated Evaluation Modes
+- Policies are things we want to be true
+- Say if you want a database to have a compatibility mode of 2019, we can enforce this via a policy.
+- ![alt text](image-790.png)
+- ![alt text](image-791.png)
+- Policy Management is only for SQL Server on VM, it is not there for MI
+- ![alt text](image-792.png)
+- ![alt text](image-793.png)
+- ![alt text](image-794.png)
+- ![alt text](image-795.png)
+- ![alt text](image-796.png)
+- ![alt text](image-797.png)
+- ![alt text](image-798.png)
+- ![alt text](image-799.png)
+- ![alt text](image-800.png)
+- This way we can enforce a policy on our databases to conform to a compatibility level of 150
+- We can do it now or we can run it on a schedule.
+- ![alt text](image-801.png)
+- We can do it via T-SQL code also 
+- ![alt text](image-802.png)
+- ![alt text](image-803.png)
+
+### Perform Backup and Restore by using Database Tools
+- Backups for Azure SQL Database and Managed Instance are automatically done
+- For VMs we need to do them manually
+- This is done through the installation of the SQL Server IaaS Agent Extension to enable automatic backups
+- ![alt text](image-804.png)
+- ![alt text](image-805.png)
+- ![alt text](image-806.png)
+- ![alt text](image-807.png)
+
+### Perform Database Backup with Options
+- ![alt text](image-808.png)
+- ![alt text](image-809.png)
+- ![alt text](image-810.png)
+- ![alt text](image-811.png)
+- ![alt text](image-812.png)
+- ![alt text](image-813.png)
+- For MI, Copy-Only Backup is automatically enabled by default. This is because Azure Sql Database and MI already have backups configured by default.
+- If we have SQL Server IaaS extension, then we can also configure backups for SQL Server on VM within the Azure portal itself.
+
+### Database and Transaction Log Backups with options
+- ![alt text](image-814.png)
+- ![alt text](image-815.png)
+
+```sql
+-- Create a certificate for encryption (required for ENCRYPTION option)
+-- HELP: Creates a certificate for encrypting backups
+-- HELP: Store securely and back up the certificate
+CREATE CERTIFICATE BackupCert 
+WITH SUBJECT = 'Backup Encryption Certificate';
+
+-- Create a credential for Azure Blob Storage to authenticate access
+-- HELP: IDENTITY = 'SHARED ACCESS SIGNATURE' specifies SAS authentication
+-- HELP: SECRET is the SAS token (remove leading '?' if present)
+-- HELP: URL must match the storage account and container
+CREATE CREDENTIAL [https://<storageaccount>.blob.core.windows.net/<container>]
+WITH IDENTITY = 'SHARED ACCESS SIGNATURE',
+SECRET = '<SAS_token>';
+
+-- Backup database to Azure Blob Storage with specified options
+-- HELP: BACKUP DATABASE creates a full database backup
+-- HELP: TO URL specifies the Azure Blob Storage destination for the backup file
+-- HELP: FORMAT overwrites existing media set, creating a new one
+-- HELP: MEDIANAME names the media set for identification
+-- HELP: NAME names the backup set for restore operations
+-- HELP: COMPRESSION reduces backup size for faster transfer and lower costs
+-- HELP: ENCRYPTION secures the backup with encryption
+-- HELP: ALGORITHM specifies encryption type (AES_256 for strong encryption)
+-- HELP: SERVER CERTIFICATE references the certificate for encryption
+-- HELP: CHECKSUM validates data integrity during backup and restore
+-- HELP: NORECOVERY leaves database in restoring state (optional, typically for log backups)
+-- HELP: STATS = 10 displays progress every 10%
+-- HELP: MAXTRANSFERSIZE sets buffer size for transfer (4MB optimal for Blob Storage)
+-- HELP: BLOCKSIZE optimizes block size for Blob Storage (65536 recommended)
+BACKUP DATABASE [<DatabaseName>]
+TO URL = 'https://<storageaccount>.blob.core.windows.net/<container>/<backupfile>.bak'
+WITH 
+    FORMAT,
+    MEDIANAME = 'MyBackupMedia',
+    NAME = 'FullBackup_<DatabaseName>',
+    COMPRESSION,
+    ENCRYPTION (ALGORITHM = AES_256, SERVER CERTIFICATE = BackupCert),
+    CHECKSUM,
+    NORECOVERY,
+    STATS = 10,
+    MAXTRANSFERSIZE = 4194304,
+    BLOCKSIZE = 65536;
+
+-- Example: Backup AdventureWorks database
+-- HELP: Assumes certificate 'BackupCert' exists for encryption
+-- HELP: Replace <storageaccount>, <container>, and file name as needed
+BACKUP DATABASE [AdventureWorks]
+TO URL = 'https://mystorage.blob.core.windows.net/backups/AdventureWorks_20250509.bak'
+WITH 
+    FORMAT,
+    MEDIANAME = 'AdventureWorksMedia',
+    NAME = 'FullBackup_AdventureWorks',
+    COMPRESSION,
+    ENCRYPTION (ALGORITHM = AES_256, SERVER CERTIFICATE = BackupCert),
+    CHECKSUM,
+    NORECOVERY,
+    STATS = 10,
+    MAXTRANSFERSIZE = 4194304,
+    BLOCKSIZE = 65536;
+
+-- Verify backup integrity
+-- HELP: RESTORE VERIFYONLY checks if backup is valid without restoring
+-- HELP: CHECKSUM ensures data integrity during verification
+RESTORE VERIFYONLY 
+FROM URL = 'https://mystorage.blob.core.windows.net/backups/AdventureWorks_20250509.bak'
+WITH CHECKSUM;
+
+-- Restore database from Azure Blob Storage
+-- HELP: RESTORE DATABASE restores the database from a backup
+-- HELP: FROM URL specifies the backup file location in Azure Blob Storage
+-- HELP: MOVE relocates database files to new paths (required if paths differ)
+-- HELP: RECOVERY brings the database online after restore (default)
+-- HELP: NORECOVERY leaves database in restoring state for additional restores (e.g., log backups)
+-- HELP: REPLACE overwrites existing database with the same name
+-- HELP: CHECKSUM validates data integrity during restore
+-- HELP: STATS = 10 displays progress every 10%
+RESTORE DATABASE [<DatabaseName>]
+FROM URL = 'https://<storageaccount>.blob.core.windows.net/<container>/<backupfile>.bak'
+WITH 
+    MOVE '<LogicalDataFileName>' TO '<NewDataFilePath>.mdf',
+    MOVE '<LogicalLogFileName>' TO '<NewLogFilePath>.ldf',
+    RECOVERY,
+    REPLACE,
+    CHECKSUM,
+    STATS = 10;
+
+-- Example: Restore AdventureWorks database
+-- HELP: Logical file names can be found using RESTORE FILELISTONLY
+-- HELP: Replace paths and file names as needed
+-- HELP: Assumes certificate 'BackupCert' is available for decryption
+RESTORE DATABASE [AdventureWorks]
+FROM URL = 'https://mystorage.blob.core.windows.net/backups/AdventureWorks_20250509.bak'
+WITH 
+    MOVE 'AdventureWorks_Data' TO 'D:\SQLData\AdventureWorks.mdf',
+    MOVE 'AdventureWorks_Log' TO 'D:\SQLLogs\AdventureWorks.ldf',
+    RECOVERY,
+    REPLACE,
+    CHECKSUM,
+    STATS = 10;
+
+-- Get logical file names for MOVE option (if unknown)
+-- HELP: RESTORE FILELISTONLY lists logical file names in the backup
+RESTORE FILELISTONLY 
+FROM URL = 'https://mystorage.blob.core.windows.net/backups/AdventureWorks_20250509.bak';
+
+-- Transaction log truncation (if needed, for reference)
+-- HELP: BACKUP LOG with TRUNCATE_ONLY truncates log without backup (deprecated, avoid)
+-- HELP: Use only in simple recovery model; breaks log chain in full recovery
+BACKUP LOG [<DatabaseName>]
+TO DISK = 'NUL'
+WITH TRUNCATE_ONLY;
+
+```
+
+### Restoring Databases
+- ![alt text](image-816.png)
+- For SQL MI we can do this
+- ![alt text](image-817.png)
+- ![alt text](image-818.png)
+
+### Backup and Restore from Azure Storage
+- ![alt text](image-819.png)
+- ![alt text](image-820.png)
+
+## Recommend and test HA/DR strategies and implement HA/DR
+
+### Evaluate HADR for hybrid deployments
+- To implement High Availability (HA) and Disaster Recovery (DR) for a hybrid deployment of SQL Server on Azure Virtual Machines (VMs), where part of the solution runs on-premises and part in Azure, you can leverage SQL Server features like Always On Availability Groups, log shipping, or backup/restore to Azure Blob Storage, combined with Azure-specific capabilities such as Azure Site Recovery.
+- Always On Availability Groups (AGs):
+HA: Synchronous replication between replicas in the same region (on-premises or Azure) for minimal data loss.
+DR: Asynchronous replication to a secondary site (e.g., Azure VM from on-premises) for cross-site recovery.
+- Hybrid Requirement: A VPN or ExpressRoute connection between on-premises and Azure virtual networks to form a multi-subnet failover cluster.
+- Log Shipping:
+DR: Transaction logs are shipped from on-premises to Azure VMs for delayed recovery.
+Hybrid Requirement: Network connectivity for log transfer and manual failover.
+- DR: Back up on-premises databases to Azure Blob Storage and restore to Azure VMs during a disaster.
+Hybrid Requirement: Storage account access and sufficient bandwidth for backup/restore.
+- Azure Site Recovery (ASR):
+DR: Replicates entire VMs (including SQL Server) from on-premises to Azure for failover.
+Hybrid Requirement: ASR setup with compatible SQL Server versions and OS.
+- Failover Cluster Instances (FCIs):
+HA: Provides instance-level HA within a single site (less common for hybrid DR due to shared storage needs).
+Hybrid Limitation: Not ideal for cross-site DR unless combined with storage replication.
+- Recommended Approach: Use Always On Availability Groups for HA/DR in hybrid setups due to automatic failover, readable secondaries, and support for cross-site replication. Combine with backup/restore for additional DR protection and point-in-time recovery
+- ![alt text](image-821.png)
+- ![alt text](image-822.png)
+- ![alt text](image-823.png)
+- ![alt text](image-824.png)
+- ![alt text](image-825.png)
+- ![alt text](image-826.png)
+- ![alt text](image-827.png)
+- ![alt text](image-828.png)
+- ![alt text](image-829.png)
+- ![alt text](image-830.png)
+- ![alt text](image-831.png)
+- ![alt text](image-832.png)
+- ![alt text](image-833.png)
+- ![alt text](image-834.png)
+- ![alt text](image-835.png)
+- ![alt text](image-836.png)
+- ![alt text](image-837.png)
+- ![alt text](image-838.png)
+- ![alt text](image-839.png)
+- ![alt text](image-840.png)
+- ![alt text](image-841.png)
+- ![alt text](image-842.png)
+- To set up replication for SQL Server on an Azure Virtual Machine (VM) in a hybrid deployment (e.g., between on-premises and Azure VMs or between Azure VMs), you can use SQL Server Transactional Replication, Merge Replication, or Snapshot Replication, depending on your requirements. For a hybrid setup with High Availability (HA) and Disaster Recovery (DR), Transactional Replication is often preferred due to its low latency and support for continuous updates, complementing Always On Availability Groups or backup/restore strategies.
+- Overview of Transactional Replication
+- Components:
+- Publisher: The source server (e.g., on-premises or Azure VM) hosting the database with data to replicate.
+- Distributor: Manages replication metadata and history (can be on the publisher or a separate server).
+- Subscriber: The destination server (e.g., Azure VM) receiving replicated data.
+- Publication: A collection of articles (tables, views, etc.) to replicate.
+- Subscription: A request for the publication by a subscriber.
+- Hybrid Deployment:
+- Publisher on-premises or in Azure VM, subscriber in Azure VM (or vice versa).
+- Requires a VPN or ExpressRoute for connectivity between on-premises and Azure.
+Use Case:
+- Replicate data for reporting, load balancing, or DR.
+- Complements HA/DR strategies like Always On Availability Groups (AGs) or backup/restore.
+
+### Evaluate HADR for hybrid deployments/Database Mirroring/ Azure Blob Storage/Azure Site Recovery
+- ![alt text](image-843.png)
+- ![alt text](image-844.png)
+- ![alt text](image-845.png)
+- ![alt text](image-846.png)
+- ![alt text](image-847.png)
+- In simple terms, Always On Availability Groups (AGs) with Windows Server Failover Clustering (WSFC) is a SQL Server feature that keeps your database highly available and protected from disasters. It:
+
+- Keeps your database running (High Availability, HA) by automatically switching to a backup server if the main server fails.
+- Protects data during disasters (Disaster Recovery, DR) by replicating data to another location (e.g., Azure).
+- Uses WSFC to manage multiple servers (nodes) working together as a cluster.
+- Supports hybrid setups (on-premises and Azure VMs) for flexibility.
+- Think of it as a safety net for your critical databases, ensuring they're always accessible and recoverable, even if a server crashes or a data center fails.
+
+## Always On Availability Groups with WSFC for SQL Server on Azure VMs (Hybrid Deployment)
+
+This guide outlines the setup of **Always On Availability Groups (AGs)** with **Windows Server Failover Clustering (WSFC)** for SQL Server on Azure Virtual Machines (VMs) in a hybrid deployment (on-premises and Azure). It includes backup and point-in-time restore to Azure Blob Storage for Disaster Recovery (DR).
+
+## Prerequisites
+- SQL Server 2012+ (Enterprise for automatic failover).
+- Windows Server 2012+ for WSFC.
+- Active Directory (AD) domain for all nodes.
+- VPN/ExpressRoute for hybrid connectivity.
+- Database in full recovery model.
+- Azure Storage account with SAS token.
+- SQL Server Agent enabled, sysadmin permissions.
+- Static IPs, firewall ports open (1433, 5022, 445).
+
+## Setup Steps
+
+| Step | Description | Commands/Actions |
+|------|-------------|------------------|
+| **1. Configure WSFC** | Create a multi-subnet failover cluster across on-premises and Azure VMs. | - Install Failover Clustering: `Install-WindowsFeature -Name Failover-Clustering -IncludeManagementTools`<br>- Create cluster: `New-Cluster -Name "SQLCluster" -Node "Node1","Node2" -StaticAddress "<ClusterIP>" -NoStorage`<br>- Set cloud witness: `Set-ClusterQuorum -CloudWitness -AccountName "<StorageAccountName>" -AccessKey "<StorageAccountKey>"`<br>- Configure Azure Internal Load Balancer (ILB) for cluster IP. |
+| **2. Enable AGs** | Enable Always On AGs on all SQL Server instances. | - SQL Server Configuration Manager: Enable Always On AGs, restart service.<br>- Verify: `SELECT SERVERPROPERTY('IsHadrEnabled')` (returns 1). |
+| **3. Create AG** | Create AG, add database, configure replicas. | ```sql<br>ALTER DATABASE [<DatabaseName>] SET RECOVERY FULL;<br>CREATE ENDPOINT [HADR_Endpoint] STATE=STARTED AS TCP (LISTENER_PORT=5022) FOR DATABASE_MIRRORING (ROLE=ALL, AUTHENTICATION=WINDOWS NEGOTIATE, ENCRYPTION=REQUIRED ALGORITHM AES);<br>GRANT CONNECT ON ENDPOINT::[HADR_Endpoint] TO [<SQLServiceAccount>];<br>CREATE AVAILABILITY GROUP [MyAG] WITH (AUTOMATED_BACKUP_PREFERENCE=PRIMARY) FOR DATABASE [<DatabaseName>] REPLICA ON N'<PrimaryServerName>' WITH (ENDPOINT_URL='TCP://<PrimaryServerName>.<Domain>:5022', AVAILABILITY_MODE=SYNCHRONOUS_COMMIT, FAILOVER_MODE=AUTOMATIC, BACKUP_PRIORITY=50, SECONDARY_ROLE(ALLOW_CONNECTIONS=ALL)), N'<SecondaryServerName>' WITH (ENDPOINT_URL='TCP://<SecondaryServerName>.<Domain>:5022', AVAILABILITY_MODE=ASYNCHRONOUS_COMMIT, FAILOVER_MODE=MANUAL, BACKUP_PRIORITY=50, SECONDARY_ROLE(ALLOW_CONNECTIONS=ALL));<br>```<br>On secondary: `ALTER AVAILABILITY GROUP [MyAG] JOIN;` |
+| **4. Initialize Secondary** | Seed database to secondary replica. | - Automatic seeding: `ALTER AVAILABILITY GROUP [MyAG] MODIFY REPLICA ON N'<SecondaryServerName>' WITH (SEEDING_MODE=AUTOMATIC);`<br>- On secondary: `ALTER DATABASE [<DatabaseName>] SET HADR AVAILABILITY GROUP=[MyAG];`<br>- Or use backup/restore (see below). |
+| **5. Create Listener** | Create virtual network name for client failover. | ```sql<br>ALTER AVAILABILITY GROUP [MyAG] ADD LISTENER 'MyAGListener' (WITH IP (('<PrimarySubnetIP>','<SubnetMask>'), ('<SecondarySubnetIP>','<SubnetMask>')), PORT=1433);<br>```<br>- Configure Azure ILB: `New-AzLoadBalancer -Name "AGListenerLB" ...` |
+| **6. Backup Database** | Back up database to Azure Blob Storage for DR. | ```sql<br>ALTER DATABASE [<DatabaseName>] SET RECOVERY FULL;<br>CREATE CERTIFICATE BackupCert WITH SUBJECT='Backup Encryption Certificate';<br>CREATE CREDENTIAL [https://<storageaccount>.blob.core.windows.net/<container>] WITH IDENTITY='SHARED ACCESS SIGNATURE', SECRET='<SAS_token>';<br>BACKUP DATABASE [<DatabaseName>] TO URL='https://<storageaccount>.blob.core.windows.net/<container>/<backupfile>.bak' WITH FORMAT, MEDIANAME='MyBackupMedia', NAME='FullBackup_<DatabaseName>', COMPRESSION, ENCRYPTION(ALGORITHM=AES_256, SERVER CERTIFICATE=BackupCert), CHECKSUM, NORECOVERY, STATS=10, MAXTRANSFERSIZE=4194304, BLOCKSIZE=65536;<br>BACKUP LOG [<DatabaseName>] TO URL='https://<storageaccount>.blob.core.windows.net/<container>/<logbackupfile>.trn' WITH COMPRESSION, CHECKSUM, NORECOVERY, STATS=10;<br>RESTORE VERIFYONLY FROM URL='https://<storageaccount>.blob.core.windows.net/<container>/<backupfile>.bak' WITH CHECKSUM;<br>``` |
+| **7. Point-in-Time Restore** | Restore to specific time on Azure VM for DR. | ```sql<br>CREATE CREDENTIAL [https://<storageaccount>.blob.core.windows.net/<container>] WITH IDENTITY='SHARED ACCESS SIGNATURE', SECRET='<SAS_token>';<br>CREATE CERTIFICATE BackupCert FROM FILE='<PathToCertFile>.cer' WITH PRIVATE KEY(FILE='<PathToPrivateKey>.pvk', DECRYPTION BY PASSWORD='<Password>');<br>RESTORE DATABASE [<DatabaseName>] FROM URL='https://<storageaccount>.blob.core.windows.net/<igazai><backupfile>.bak' WITH MOVE '<LogicalDataFileName>' TO '<NewDataFilePath>.mdf', MOVE '<LogicalLogFileName>' TO '<NewLogFilePath>.ldf', NORECOVERY, REPLACE, CHECKSUM, STATS=10;<br>RESTORE LOG [<DatabaseName>] FROM URL='https://<storageaccount>.blob.core.windows.net/<container>/<logbackupfile>.trn' WITH STOPAT='2025-05-09 14:30:00', RECOVERY, CHECKSUM, STATS=10;<br>RESTORE FILELISTONLY FROM URL='https://<storageaccount>.blob.core.windows.net/<container>/<backupfile>.bak';<br>``` |
+| **8. Test Failover** | Verify automatic and manual failover. | ```sql<br>ALTER AVAILABILITY GROUP [MyAG] FAILOVER; -- Manual failover<br>SELECT * FROM sys.dm_hadr_database_replica_states; -- Monitor sync<br>``` |
+| **9. Avoid Log Truncation** | Prevent log chain breakage. | ```sql<br>-- Avoid: BACKUP LOG [<DatabaseName>] TO DISK='NUL' WITH TRUNCATE_ONLY;<br>``` |
+
+## Best Practices
+- **Network**: Use ExpressRoute for low-latency hybrid connectivity; open ports 1433, 5022, 445.
+- **WSFC**: Use cloud witness for quorum; configure multi-subnet cluster.
+- **AGs**: Synchronous commit for HA, asynchronous for DR; enable readable secondaries.
+- **Backup**: Automate full/log backups; use `ENCRYPTION`, `CHECKSUM`; avoid `TRUNCATE_ONLY`.
+- **Security**: Windows Authentication; secure certificate transfer.
+- **Performance**: Use DS-series VMs, Premium SSD; optimize `MAXTRANSFERSIZE`/`BLOCKSIZE`.
+- **Monitoring**: Use SQL Server Agent, Azure Monitor; test failover regularly.
+
+## Notes
+- Requires Enterprise edition for automatic failover; Standard for manual.
+- Test latency for synchronous replication in hybrid setups.
+- References: [Microsoft Learn: Always On AGs](https://learn.microsoft.com), [Azure SQL VM HA/DR](https://learn.microsoft.com).
+- In simple terms, quorum is a voting mechanism in WSFC that ensures the cluster remains operational and avoids "split-brain" scenarios (where nodes operate independently, causing data conflicts). Each node or resource in the cluster gets a vote, and a majority of votes (quorum) is needed to keep the cluster running.
+- Purpose: Prevents cluster failure when some nodes are unavailable (e.g., server crash, network issue).
+- Real-Life Use: In a retail company with an online store, quorum ensures your SQL Server database (e.g., for orders) stays available even if an on-premises server or Azure VM fails, keeping your store operational.
+- Prevents Downtime: Without quorum, a single node failure could shut down the cluster, stopping order processing.
+- Avoids Data Conflicts: Ensures only one node acts as primary, preventing data inconsistencies.
+- Hybrid Reliability: Cloud Witness in Azure keeps the cluster operational even if the on-premises network is down.
+- Set up a Cloud Witness using an Azure Blob Storage account.
+- Configure AGs to replicate OrdersDB synchronously (on-premises for HA) and asynchronously (Azure for DR).
+Back up to Azure Blob Storage for point-in-time recovery (e.g., recover deleted orders).
+- If the on-premises node fails, the Azure node and Cloud Witness maintain quorum, allowing automatic failover to keep the store online.
+# Quorum in Windows Server Failover Clustering (WSFC)
+
+## What is Quorum?
+Quorum in WSFC is a mechanism to ensure a cluster remains operational and avoids "split-brain" scenarios, where multiple nodes think they're in control. It determines if enough nodes are available to keep the cluster running.
+
+## How Does It Work?
+- A cluster needs a majority of "votes" to function.
+- Each node in the cluster gets one vote.
+- A **quorum resource** (like a disk or file share) may also have a vote.
+- The cluster stays online only if more than half of the total votes are present.
+
+## Example
+- 5-node cluster: Total votes = 5.
+- Quorum requires at least 3 votes (majority).
+- If 2 nodes fail, 3 nodes remain, and the cluster stays online.
+- If 3 nodes fail, only 2 votes remain, and the cluster stops to prevent issues.
+
+## Quorum Types
+1. **Node Majority**: Only nodes vote (best for odd-numbered clusters).
+2. **Node and Disk Majority**: Nodes + a shared disk vote (even-numbered clusters).
+3. **Node and File Share Majority**: Nodes + a file share vote (no shared storage).
+4. **Disk Only**: Only a disk votes (less common, single point of failure).
+
+## Why It Matters
+Quorum ensures cluster reliability and prevents data corruption by ensuring only one group of nodes operates the cluster at a time.
+
+## Configuration
+- Set up via **Failover Cluster Manager**.
+- Choose a quorum model based on your cluster size and storage setup.
+- Monitor quorum health to avoid cluster downtime.
+
+# Quorum Witnesses in Windows Server Failover Clustering (WSFC)
+
+## What is a Witness?
+A witness is an additional resource in WSFC that provides a vote to help maintain quorum, ensuring the cluster stays operational and avoids "split-brain" scenarios. It’s used to achieve a majority of votes, especially in even-numbered node clusters.
+
+## How Witnesses Work
+- A witness (disk, file share, or cloud resource) gets **one vote** in the quorum.
+- It’s combined with node votes to determine if the cluster has enough votes (majority) to stay online.
+- Witnesses are critical in scenarios where node failures could result in a tie (e.g., in a 2-node or 4-node cluster).
+
+## Example
+- 4-node cluster + disk witness: Total votes = 5 (4 nodes + 1 witness).
+- Quorum requires at least 3 votes.
+- If 2 nodes fail, 2 nodes + witness = 3 votes, so the cluster stays online.
+- If 3 nodes fail, only 1 node + witness = 2 votes, so the cluster stops.
+
+## Types of Witnesses
+1. **Disk Witness**: A shared disk (e.g., a small LUN) with a vote, used in **Node and Disk Majority**.
+2. **File Share Witness**: A file share on a separate server, used in **Node and File Share Majority**.
+3. **Cloud Witness**: A vote stored in Azure Blob Storage, ideal for multi-site clusters (modern, low-maintenance).
+
+## When to Use a Witness
+- Recommended for **even-numbered node clusters** (e.g., 2, 4, 6 nodes) to avoid vote ties.
+- Not needed for odd-numbered node clusters, as nodes alone can form a majority.
+
+## Why Witnesses Matter
+Witnesses provide an extra vote to maintain quorum, ensuring cluster stability and preventing downtime or data corruption when nodes fail.
+
+## Configuration
+- Set up via **Failover Cluster Manager** under "Configure Cluster Quorum Settings."
+- Choose the witness type based on your infrastructure (shared storage, file share, or cloud).
+- Ensure the witness is accessible and redundant to avoid a single point of failure.
+
+
+
+
+- ![alt text](image-848.png)
+- ![alt text](image-849.png)
+- ![alt text](image-850.png)
+- ![alt text](image-851.png)
+- ![alt text](image-852.png)
+- ![alt text](image-853.png)
+- ![alt text](image-854.png)
+- ![alt text](image-855.png)
+- ![alt text](image-856.png)
+- ![alt text](image-857.png)
+- ![alt text](image-858.png)
+- ![alt text](image-859.png)
+- ![alt text](image-860.png)
+- ![alt text](image-861.png)
+- ![alt text](image-862.png)
+- ![alt text](image-863.png)
+- ![alt text](image-864.png)
+- ![alt text](image-865.png)
+- ![alt text](image-866.png)
+- ![alt text](image-867.png)
+- ![alt text](image-868.png)
+- ![alt text](image-869.png)
+- ![alt text](image-870.png)
+- ![alt text](image-871.png)
+- ![alt text](image-872.png)
+- ![alt text](image-873.png)
+- ![alt text](image-874.png)
+- ![alt text](image-875.png)
+- ![alt text](image-876.png)
+- ![alt text](image-877.png)
+- ![alt text](image-878.png)
+- ![alt text](image-879.png)
+- ![alt text](image-880.png)
+- ![alt text](image-881.png)
+- ![alt text](image-882.png)
+- ![alt text](image-883.png)
+- ![alt text](image-884.png)
+- ![alt text](image-885.png)
+- ![alt text](image-886.png)
+- ![alt text](image-887.png)
+- ![alt text](image-888.png)
+- ![alt text](image-889.png)
+- ![alt text](image-890.png)
+- Log Shipping is a database replication technique where transaction log backups from a primary database server are automatically transferred to one or more secondary servers and restored, keeping the secondary databases in sync with the primary for disaster recovery or reporting purposes.
+# Log Shipping Setup Guide
+
+This guide provides steps to set up log shipping in Microsoft SQL Server for database replication, ensuring secondary databases stay in sync with the primary for disaster recovery or reporting.
+
+## Prerequisites
+- SQL Server installed on primary and secondary servers.
+- Network connectivity between servers.
+- Shared folder for log backups (accessible by all servers).
+- SQL Server Agent running on all servers.
+- Primary database in Full or Bulk-Logged recovery model.
+
+## Setup Steps
+
+### 1. Initialize the Primary Database
+- Ensure the primary database uses Full or Bulk-Logged recovery model.
+- Take a full backup:
+  ```sql
+  BACKUP DATABASE [PrimaryDB] TO DISK = 'path\to\backup.bak';
+  ```
+
+### 2. Restore Database on Secondary Server
+- Copy the full backup to the secondary server.
+- Restore with NORECOVERY:
+  ```sql
+  RESTORE DATABASE [PrimaryDB] FROM DISK = 'path\to\backup.bak' WITH NORECOVERY;
+  ```
+
+### 3. Configure Log Shipping (Using SQL Server Management Studio)
+- **Open SSMS**: Connect to the primary server.
+- **Navigate**: Right-click the primary database > Properties > Transaction Log Shipping.
+- **Enable Log Shipping**: Check "Enable this as a primary database in a log shipping configuration."
+- **Backup Settings**:
+  - Set shared folder (e.g., `\\network\share\logbackups`).
+  - Schedule backups (e.g., every 15 minutes).
+- **Add Secondary**:
+  - Click "Add," connect to secondary server, select restored database.
+  - Configure:
+    - **Initialize**: Already restored.
+    - **Copy Files**: Set destination folder and copy schedule.
+    - **Restore**: Set restore schedule and mode (NORECOVERY or STANDBY for read-only).
+- **Monitor Server** (optional): Specify a monitor server for status tracking.
+- **Save**: Click OK to create log shipping jobs.
+
+### 4. Verify SQL Server Agent Jobs
+- **Primary Server**: Backup job (transaction logs).
+- **Secondary Server**: Copy job (copies logs), Restore job (applies logs).
+- **Monitor Server** (if used): Alert job.
+- Check job status in SQL Server Agent.
+
+### 5. Test and Monitor
+- Verify jobs run successfully (SQL Server Agent job history).
+- Check shared folder for log backups.
+- Confirm secondary database updates (use `RESTORE HEADERONLY`).
+- Set up alerts on monitor server for failures.
+
+### 6. Maintenance
+- Monitor disk space for log backups.
+- Check latency between primary and secondary.
+- Test failover (manually restore secondary with RECOVERY).
+
+## Notes
+- **Permissions**: SQL Server Agent accounts need read/write access to shared folder.
+- **Security**: Use encrypted connections or secure shared folder.
+- **Failover**: Manual intervention required for failover.
+- **Platform-Specific**: For non-SQL Server databases (e.g., MySQL, PostgreSQL), use native replication tools.
+
+For tailored configurations or other databases, consult platform-specific documentation.
+
+- ![alt text](image-891.png)
+- ![alt text](image-892.png)
+- ![alt text](image-893.png)
+- ![alt text](image-894.png)
+- ![alt text](image-895.png)
+- ![alt text](image-896.png)
+- ![alt text](image-897.png)
+- ![alt text](image-898.png)
+- ![alt text](image-899.png)
+- ![alt text](image-900.png)
+- ![alt text](image-901.png)
+- ![alt text](image-902.png)
+- ![alt text](image-903.png)
+- ![alt text](image-904.png)
+- ![alt text](image-905.png)
+- ![alt text](image-906.png)
+
+### Validating Data Types for Columns
+- ![alt text](image-907.png)
+- ![alt text](image-908.png)
+- ![alt text](image-909.png)
+- ![alt text](image-910.png)
+- ![alt text](image-911.png)
+
+
+### Identify Data Quality Issues with Duplication of Data
+- ![alt text](image-913.png)
+- Why we need to normalize this data?
+- ![alt text](image-914.png)
+
+### First Normal Form
+- ![alt text](image-915.png)
+- ![alt text](image-916.png)
+### Second Normal Form
+- ![alt text](image-917.png)
+- ![alt text](image-918.png)
+### Third Normal Form
+- ![alt text](image-919.png)
+- ![alt text](image-920.png)
+
+### Fourth and Fifth Normal Forms
+- ![alt text](image-921.png)
+
+### Upgrading from SQL Server 2012 to SQL Server 2019 on Azure VM
+- We can do an online upgrade or offline upgrade
+- We will have 2016 and 2019 side by side in online upgrade and then we can decommission the 2016 version
+- In Offline upgrade strategy, we will just update the SQL Server.
+- Why should be go from 32bit to 64 bit
+- This is because 64 bit system allows better use of memory, has faster I/O
+- We can also upgrade from Developer Tier to Standard or Enterprise Edition
+- We can also choose compatibility level of database during upgrade process.
+
+### Azure Logic Apps
+- ![alt text](image-922.png)
+- We have various triggers
+- ![alt text](image-923.png)
+- ![alt text](image-924.png)
+- ![alt text](image-925.png)
+- ![alt text](image-926.png)
+- ![alt text](image-927.png)
+- ![alt text](image-928.png)
+- ![alt text](image-929.png)
+- ![alt text](image-930.png)
+- ![alt text](image-931.png)
+- ![alt text](image-932.png)
+- ![alt text](image-933.png)
+- ![alt text](image-934.png)
+- Here Connection Gateway is used if we are using an On-prem SQL Server
+- ![alt text](image-935.png)
+- ![alt text](image-936.png)
+- ![alt text](image-937.png)
+- ![alt text](image-938.png)
+- ![alt text](image-939.png)
+- ![alt text](image-940.png)
+- ![alt text](image-941.png)
+- ![alt text](image-942.png)
+- ![alt text](image-943.png)
+- ![alt text](image-944.png)
+- ![alt text](image-945.png)
